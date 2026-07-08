@@ -9,6 +9,11 @@
 #   contour_step шаг горизонталей, м
 #   cadastre    true/false — слой кадастра (ПКК геоблокирована вне РФ,
 #                для больших регионов оставляйте false)
+#   cadastre_geojson  (опционально) путь в репо к готовой выгрузке участков,
+#                напр. cadastre/kaliningrad.geojson — самый надёжный способ
+#                получить кадастровый слой в CI (см. cadastre/README.md);
+#                без него при cadastre: true нужна прямая выгрузка с НСПД
+#                (секрет CADASTRE_PROXY с российским IP)
 regions:
   - name: kaliningrad
     query: "Калининградская область"

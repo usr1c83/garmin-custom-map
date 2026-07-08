@@ -55,6 +55,7 @@ jobs:
       geofabrik: ${{ matrix.region.geofabrik }}
       contour_step: ${{ format('{0}', matrix.region.contour_step) }}
       include_cadastre: ${{ matrix.region.cadastre && '1' || '0' }}
+      cadastre_geojson: ${{ matrix.region.cadastre_geojson || '' }}
       java_xmx: "10g"
 
   release:
