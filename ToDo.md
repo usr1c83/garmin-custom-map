@@ -57,8 +57,8 @@ opentopomap.org с тремя независимо переключаемыми 
 - [x] Склейка в gmapsupp.img, проверка валидности (все три слоя видны в файле)
 - [x] Сборка Docker-образа + прогон run_all.sh через docker-run.sh
 - [x] Зелёный прогон build-map.yml на тестовом регионе (артефакт chernyakhovsk-gmapsupp, ~2.5 мин)
-- [ ] Зелёный прогон release-scheduled.yml через workflow_dispatch
-- [ ] Прогон на более крупном регионе (область) — после зелёного CI
+- [x] Зелёный прогон release-scheduled.yml через workflow_dispatch (релиз test-2026-07-08: kaliningrad 18 МБ + crimean-fd 33 МБ)
+- [x] Прогон на более крупном регионе: Калининградская область целиком и весь Крымский ФО (multi-tile, ~4 мин в CI)
 
 ### Документация
 - [x] README.md — что реализовано, как запускать (Docker/нативно/CI), как ставить карту в Garmin
@@ -86,3 +86,14 @@ opentopomap.org с тремя независимо переключаемыми 
 - Тестовая сборка: Черняховский округ (Калининградская обл.), экстракт
   kaliningrad (~90 МБ), 2 SRTM-тайла view3 → gmapsupp.img 880 КБ, три
   продукта в MPS: 3543 base / 3544 contours / 3545 cadastre. ✓
+- CI-зависание Крыма (3.5 ч): две причины. (1) viewfinderpanoramas.org
+  подвешивает соединения, у pyhgtmap нет таймаутов → фаза --download-only
+  с socket-таймаутом 90с и 5 ретраями; (2) дедлок pyhgtmap 4.1 при
+  --jobs>1 (fork при живых потоках npyosmium-писателя, воркеры виснут в
+  add_way) → генерация в 1 процесс (PYHGT_JOBS для переопределения).
+  С кешем тайлов Крым считается ~1 мин.
+- Node 20 deprecation в Actions: подняты мажоры (checkout v6, setup-java v5,
+  setup-python v6, cache v5, upload-artifact v6, download-artifact v8).
+- Подписи горизонталей в метрах (у OTM были футы) — по запросу.
+- Кадастр: сборка не падает без ПКК; секрет CADASTRE_PROXY (прокси с RU IP)
+  включает прямую выгрузку из CI.
