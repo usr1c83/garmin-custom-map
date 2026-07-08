@@ -95,7 +95,11 @@ GEOFABRIK=central-fd \
 
 Откройте `webgui/index.html` в браузере (просто двойной клик, сервер не
 нужен): поиск по названию, рисование произвольного полигона, экспорт в
-`region.geojson`. Затем:
+`region.geojson`.
+
+![Выбор региона: найденная админ-граница Черняховского округа](docs/img/webgui.png)
+
+Затем:
 
 ```bash
 REGION_NAME=myarea BOUNDARY_GEOJSON=region.geojson GEOFABRIK=central-fd ./docker-run.sh
@@ -116,6 +120,34 @@ REGION_NAME=myarea BOUNDARY_GEOJSON=region.geojson GEOFABRIK=central-fd ./docker
 соберётся — из двух слоёв.
 
 ---
+
+## Совместимые устройства
+
+Карты — в стандартном формате `gmapsupp.img` (mkgmap), работают на всех
+Garmin с поддержкой загружаемых карт
+([полный список в OSM wiki](https://wiki.openstreetmap.org/wiki/OSM_Map_On_Garmin)):
+
+| Класс | Модели |
+|---|---|
+| **Туристические навигаторы** (основная цель) | GPSMAP 62 / 64 / 65 / 66 / 67; eTrex 20/30, 22x/32x, Touch 25/35, SE, Solar; Oregon 4xx–7xx; Montana 6xx/7xx; Dakota 10/20; GPSMAP 60CSx/76 (старые — см. примечание) |
+| **Охотничьи** | Alpha, Astro |
+| **Велокомпьютеры** | Edge Touring, 530/540, 830/840, 1000/1030/1040, Edge Explore |
+| **Часы с картографией** | fenix 5X / 5 Plus / 6 Pro / 7 / 8, epix (Gen 2), Enduro 2/3, MARQ, Forerunner 945/955/965 — файл кладётся в папку `GARMIN` на часах |
+| **Автомобильные** | nüvi, zūmo (формат поддерживается, но стиль карты — топографический, не для автонавигации) |
+
+Примечания:
+
+* **Старые приборы** (GPSMAP 60CSx, eTrex Legend/Vista, nüvi 1xxx):
+  файл должен называться строго `gmapsupp.img` и лежать в `Garmin/`
+  на карте памяти; поддерживается только один такой файл.
+* **Не подходят**: устройства без поддержки карт — eTrex 10,
+  Forerunner младше 945, Edge 130 и подобные.
+* **Три слоя как отдельные карты** (Map Information) видят все
+  современные модели (GPSMAP 62+, eTrex 20+, Oregon, Montana, Edge,
+  часы); на старых слои отображаются все сразу.
+* **Кириллица**: подписи в CP1251 — нужна прошивка с поддержкой
+  русского языка (на «русских» и мультиязычных ревизиях всё
+  отображается корректно).
 
 ## Частые вопросы
 

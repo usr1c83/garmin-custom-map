@@ -62,6 +62,15 @@ has_stage osm && "$HERE/scripts/fetch_osm.sh"
 has_stage contours && "$HERE/scripts/make_contours.sh"
 
 if has_stage cadastre && [ "$INCLUDE_CADASTRE" = "1" ]; then
+    # авто-подхват выгрузки по имени региона (cadastre/<region>.geojson)
+    if [ -z "$CADASTRE_GEOJSON" ] && [ -s "$HERE/cadastre/$REGION_NAME.geojson" ]; then
+        CADASTRE_GEOJSON="$HERE/cadastre/$REGION_NAME.geojson"
+        log "using committed cadastre export $CADASTRE_GEOJSON"
+    fi
+    if [ -z "$CADASTRE_GEOJSON" ] && [ -z "${CADASTRE_PROXY:-}" ]; then
+        log "cadastre: no data source (no export in cadastre/$REGION_NAME.geojson," \
+            "no CADASTRE_PROXY); NSPD is geo-blocked outside RU — trying anyway"
+    fi
     CAD_ARGS=(--boundary "$WORK_DIR/boundary.geojson" --out "$WORK_DIR/cadastre.geojson")
     [ -n "$CADASTRE_GEOJSON" ] && CAD_ARGS+=(--from-geojson "$CADASTRE_GEOJSON")
     [ -n "${CADASTRE_PROXY:-}" ] && CAD_ARGS+=(--proxy "$CADASTRE_PROXY")

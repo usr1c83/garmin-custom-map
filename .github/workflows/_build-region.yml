@@ -102,13 +102,18 @@ jobs:
           CADASTRE_GEOJSON: ${{ inputs.cadastre_geojson }}
           CADASTRE_PROXY: ${{ secrets.CADASTRE_PROXY }}
           JAVA_XMX: ${{ inputs.java_xmx }}
-        run: ./run_all.sh
+        # size-guard: если img превышает лимит GitHub Releases (2 GiB на файл),
+        # шаг горизонталей автоматически увеличивается на 5 м и слой
+        # пересобирается (до 3 попыток)
+        run: ./scripts/build_with_size_guard.sh
 
       - name: Collect result
         run: |
           mkdir -p dist
           cp "out/${{ inputs.region_name }}/${{ inputs.region_name }}_gmapsupp.img" dist/
           ls -lh dist/
+          SIZE=$(stat -c%s dist/*.img)
+          echo "### ${{ inputs.region_name }}: $(numfmt --to=iec-i --suffix=B "$SIZE")" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v6
         with:

@@ -7,61 +7,63 @@
 #   query       запрос в Nominatim для реальной границы (пусто = весь экстракт)
 #   geofabrik   ключ из config/geofabrik_sources.yaml или полный URL
 #   contour_step шаг горизонталей, м
-#   cadastre    true/false — слой кадастра (ПКК геоблокирована вне РФ,
-#                для больших регионов оставляйте false)
-#   cadastre_geojson  (опционально) путь в репо к готовой выгрузке участков,
-#                напр. cadastre/kaliningrad.geojson — самый надёжный способ
-#                получить кадастровый слой в CI (см. cadastre/README.md);
-#                без него при cadastre: true нужна прямая выгрузка с НСПД
-#                (секрет CADASTRE_PROXY с российским IP)
+#   cadastre    true/false — собирать ли кадастровый слой. Включено по
+#                умолчанию; источник данных ищется в таком порядке:
+#                1) cadastre_geojson из этого файла;
+#                2) автоматически cadastre/<name>.geojson, если файл есть;
+#                3) прямая выгрузка с НСПД (работает только через секрет
+#                   CADASTRE_PROXY — ПКК геоблокирована вне РФ).
+#                Если источника нет, слой просто пропускается (сборка
+#                не падает) — см. cadastre/README.md.
+#   cadastre_geojson  (опционально) явный путь в репо к готовой выгрузке
 regions:
   - name: kaliningrad
     query: "Калининградская область"
     geofabrik: kaliningrad
     contour_step: 10
-    cadastre: false
+    cadastre: true
   - name: central-fd
     query: ""
     geofabrik: central-fd
     contour_step: 20
-    cadastre: false
+    cadastre: true
   - name: northwestern-fd
     query: ""
     geofabrik: northwestern-fd
     contour_step: 20
-    cadastre: false
+    cadastre: true
   - name: south-fd
     query: ""
     geofabrik: south-fd
     contour_step: 20
-    cadastre: false
+    cadastre: true
   - name: north-caucasus-fd
     query: ""
     geofabrik: north-caucasus-fd
     contour_step: 20
-    cadastre: false
+    cadastre: true
   - name: volga-fd
     query: ""
     geofabrik: volga-fd
     contour_step: 20
-    cadastre: false
+    cadastre: true
   - name: ural-fd
     query: ""
     geofabrik: ural-fd
     contour_step: 20
-    cadastre: false
+    cadastre: true
   - name: siberian-fd
     query: ""
     geofabrik: siberian-fd
     contour_step: 20
-    cadastre: false
+    cadastre: true
   - name: far-eastern-fd
     query: ""
     geofabrik: far-eastern-fd
     contour_step: 20
-    cadastre: false
+    cadastre: true
   - name: crimean-fd
     query: ""
     geofabrik: crimean-fd
     contour_step: 10
-    cadastre: false
+    cadastre: true
