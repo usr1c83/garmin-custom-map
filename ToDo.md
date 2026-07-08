@@ -55,8 +55,8 @@ opentopomap.org с тремя независимо переключаемыми 
 - [x] Тестовая сборка contours
 - [x] Тестовая сборка cadastre (или fallback-путь, если ПКК недоступна из CI)
 - [x] Склейка в gmapsupp.img, проверка валидности (все три слоя видны в файле)
-- [ ] Сборка Docker-образа + прогон run_all.sh через docker-run.sh
-- [ ] Зелёный прогон build-map.yml на тестовом регионе
+- [x] Сборка Docker-образа + прогон run_all.sh через docker-run.sh
+- [x] Зелёный прогон build-map.yml на тестовом регионе (артефакт chernyakhovsk-gmapsupp, ~2.5 мин)
 - [ ] Зелёный прогон release-scheduled.yml через workflow_dispatch
 - [ ] Прогон на более крупном регионе (область) — после зелёного CI
 

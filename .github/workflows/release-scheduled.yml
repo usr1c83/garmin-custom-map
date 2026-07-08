@@ -25,7 +25,7 @@ jobs:
     outputs:
       matrix: ${{ steps.mk.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - id: mk
         env:
           ONLY: ${{ inputs.only }}
@@ -63,8 +63,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
         with:
           pattern: "*-gmapsupp"
           path: dist
@@ -84,4 +84,3 @@ jobs:
             --title "Garmin maps $TAG" \
             --notes "$NOTES" || \
           gh release upload "$TAG" dist/*.img --clobber
-# registered 2026-07-08
