@@ -1,0 +1,50 @@
+name: build-map (manual region)
+
+on:
+  workflow_dispatch:
+    inputs:
+      region_name:
+        description: "Имя региона (слуг, имя файла)"
+        required: true
+        default: "chernyakhovsk"
+      region_query:
+        description: "Запрос в Nominatim (реальная админ-граница)"
+        required: false
+        default: "Черняховский муниципальный округ, Калининградская область"
+      bbox:
+        description: "bbox west,south,east,north (вместо region_query)"
+        required: false
+        default: ""
+      boundary_geojson:
+        description: "путь в репо к GeoJSON из webgui (вместо region_query/bbox)"
+        required: false
+        default: ""
+      geofabrik:
+        description: "ключ экстракта (kaliningrad, central-fd, ...) или URL"
+        required: true
+        default: "kaliningrad"
+      contour_step:
+        description: "Шаг горизонталей, м"
+        required: false
+        default: "10"
+      include_cadastre:
+        description: "Слой кадастра (1/0)"
+        required: false
+        default: "0"
+      cadastre_geojson:
+        description: "путь в репо к готовой выгрузке участков (fallback ПКК)"
+        required: false
+        default: ""
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build-region.yml
+    with:
+      region_name: ${{ inputs.region_name }}
+      region_query: ${{ inputs.region_query }}
+      bbox: ${{ inputs.bbox }}
+      boundary_geojson: ${{ inputs.boundary_geojson }}
+      geofabrik: ${{ inputs.geofabrik }}
+      contour_step: ${{ inputs.contour_step }}
+      include_cadastre: ${{ inputs.include_cadastre }}
+      cadastre_geojson: ${{ inputs.cadastre_geojson }}

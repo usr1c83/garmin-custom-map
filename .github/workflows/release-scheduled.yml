@@ -1,0 +1,86 @@
+name: release-scheduled (federal districts)
+
+on:
+  schedule:
+    # раз в полгода: 1 января и 1 июля, 03:00 UTC
+    - cron: "0 3 1 1,7 *"
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "собрать только эти регионы (имена через запятую, пусто = все)"
+        required: false
+        default: ""
+      tag:
+        description: "тег релиза (пусто = maps-YYYY-MM-DD)"
+        required: false
+        default: ""
+
+concurrency:
+  group: release-scheduled
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.mk.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: mk
+        env:
+          ONLY: ${{ inputs.only }}
+        run: |
+          python3 scripts/yaml_get.py json config/release_regions.yaml regions > all.json
+          if [ -n "$ONLY" ]; then
+            jq -c --arg only "$ONLY" \
+              '[ .[] | select(.name as $n | ($only | split(",") | map(gsub("^ +| +$";"")) | index($n)) != null) ]' \
+              all.json > sel.json
+          else
+            cp all.json sel.json
+          fi
+          test "$(jq length sel.json)" -gt 0 || { echo "::error::no regions matched '$ONLY'"; exit 1; }
+          jq . sel.json
+          echo "matrix={\"region\":$(jq -c . sel.json)}" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    uses: ./.github/workflows/_build-region.yml
+    with:
+      region_name: ${{ matrix.region.name }}
+      region_query: ${{ matrix.region.query }}
+      geofabrik: ${{ matrix.region.geofabrik }}
+      contour_step: ${{ format('{0}', matrix.region.contour_step) }}
+      include_cadastre: ${{ matrix.region.cadastre && '1' || '0' }}
+      java_xmx: "10g"
+
+  release:
+    needs: build
+    if: ${{ always() && contains(needs.build.result, 'success') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: "*-gmapsupp"
+          path: dist
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_INPUT: ${{ inputs.tag }}
+        run: |
+          TAG="${TAG_INPUT:-maps-$(date -u +%F)}"
+          ls -lh dist/
+          NOTES="Автосборка карт Garmin (base OpenTopoMap + горизонтали + кадастр).
+          Слои включаются на устройстве независимо: Setup → Map → Map Information.
+          Данные: © OpenStreetMap contributors (Geofabrik), viewfinderpanoramas.org.
+          Стиль: OpenTopoMap (CC-BY-NC-SA 4.0)."
+          gh release create "$TAG" dist/*.img \
+            --title "Garmin maps $TAG" \
+            --notes "$NOTES" || \
+          gh release upload "$TAG" dist/*.img --clobber

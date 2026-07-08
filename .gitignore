@@ -1,0 +1,15 @@
+# build outputs
+/out/
+/data/
+
+# downloaded toolchain (mkgmap, splitter, OpenTopoMap checkout)
+/tools/
+
+# fetched OpenTopoMap style (see scripts/fetch_style.sh)
+/styles/base-otm/
+
+# SRTM cache
+/hgt/
+
+__pycache__/
+*.pyc

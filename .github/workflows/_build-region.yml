@@ -1,0 +1,113 @@
+name: build-region (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      region_name:
+        description: "слуг региона (имя выходного файла)"
+        required: true
+        type: string
+      region_query:
+        description: "запрос в Nominatim (пусто = весь geofabrik-экстракт)"
+        required: false
+        type: string
+        default: ""
+      bbox:
+        description: "west,south,east,north (используется вместо region_query)"
+        required: false
+        type: string
+        default: ""
+      boundary_geojson:
+        description: "путь в репозитории к GeoJSON из webgui"
+        required: false
+        type: string
+        default: ""
+      geofabrik:
+        description: "ключ из config/geofabrik_sources.yaml или URL"
+        required: true
+        type: string
+      contour_step:
+        description: "шаг горизонталей, м"
+        required: false
+        type: string
+        default: "10"
+      include_cadastre:
+        required: false
+        type: string
+        default: "0"
+      cadastre_geojson:
+        description: "путь в репозитории к выгрузке участков (fallback ПКК)"
+        required: false
+        type: string
+        default: ""
+      java_xmx:
+        required: false
+        type: string
+        default: "6g"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space (large regions)
+        run: |
+          sudo rm -rf /usr/local/lib/android /opt/hostedtoolcache/CodeQL \
+                      /usr/share/dotnet /opt/ghc || true
+          df -h / | tail -1
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install toolchain (osmium, pyhgtmap)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq osmium-tool
+          pip install --quiet pyhgtmap
+          osmium --version | head -1
+          pyhgtmap --version
+
+      - name: Cache mkgmap/splitter and SRTM tiles
+        uses: actions/cache@v4
+        with:
+          path: |
+            tools
+            hgt
+          key: toolchain-hgt-${{ inputs.geofabrik }}-${{ hashFiles('scripts/common.sh') }}
+          restore-keys: |
+            toolchain-hgt-${{ inputs.geofabrik }}-
+            toolchain-hgt-
+
+      - name: Build map
+        env:
+          REGION_NAME: ${{ inputs.region_name }}
+          REGION_QUERY: ${{ inputs.region_query }}
+          BBOX: ${{ inputs.bbox }}
+          BOUNDARY_GEOJSON: ${{ inputs.boundary_geojson }}
+          GEOFABRIK: ${{ inputs.geofabrik }}
+          CONTOUR_STEP: ${{ inputs.contour_step }}
+          INCLUDE_CADASTRE: ${{ inputs.include_cadastre }}
+          CADASTRE_GEOJSON: ${{ inputs.cadastre_geojson }}
+          JAVA_XMX: ${{ inputs.java_xmx }}
+        run: ./run_all.sh
+
+      - name: Collect result
+        run: |
+          mkdir -p dist
+          cp "out/${{ inputs.region_name }}/${{ inputs.region_name }}_gmapsupp.img" dist/
+          ls -lh dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.region_name }}-gmapsupp
+          path: dist/*.img
+          if-no-files-found: error
+          retention-days: 30

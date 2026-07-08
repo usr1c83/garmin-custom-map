@@ -1,0 +1,2 @@
+# Style options for the cadastre overlay.
+levels = 0:24, 1:22, 2:20

@@ -1,0 +1,4 @@
+# Cadastral parcel boundaries (from scripts/cadastre_to_osm.py).
+# Extended line type so device defaults never restyle it; rendering is
+# defined in typ.txt. Name carries the cadastral number.
+cadastre=parcel { name '${name}'; } [0x10800 resolution 20]

@@ -1,0 +1,13 @@
+# mkgmap options for the contours overlay layer.
+# family-id / mapname / description are passed on the command line.
+product-id: 1
+product-version: 1
+copyright-message=viewfinderpanoramas.org; contour lines CC-BY-SA
+draw-priority: 28
+transparent
+max-jobs
+remove-ovm-work-files
+reduce-point-density=4
+min-size-polygon=8
+keep-going
+code-page=1251

@@ -1,0 +1,11 @@
+# mkgmap options for the cadastre overlay layer.
+# family-id / mapname / description are passed on the command line.
+product-id: 1
+product-version: 1
+copyright-message=Данные ПКК Росреестра (nspd.gov.ru), только для справки
+draw-priority: 30
+transparent
+max-jobs
+remove-ovm-work-files
+keep-going
+code-page=1251

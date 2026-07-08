@@ -1,0 +1,62 @@
+# Регионы для плановых релизов (.github/workflows/release-scheduled.yml).
+# Каждая запись становится job'ом матрицы; готовые .img публикуются одним
+# GitHub Release с тегом maps-YYYY-MM-DD.
+#
+# Поля:
+#   name        слуг региона (имя файла карты)
+#   query       запрос в Nominatim для реальной границы (пусто = весь экстракт)
+#   geofabrik   ключ из config/geofabrik_sources.yaml или полный URL
+#   contour_step шаг горизонталей, м
+#   cadastre    true/false — слой кадастра (ПКК геоблокирована вне РФ,
+#                для больших регионов оставляйте false)
+regions:
+  - name: kaliningrad
+    query: "Калининградская область"
+    geofabrik: kaliningrad
+    contour_step: 10
+    cadastre: false
+  - name: central-fd
+    query: ""
+    geofabrik: central-fd
+    contour_step: 20
+    cadastre: false
+  - name: northwestern-fd
+    query: ""
+    geofabrik: northwestern-fd
+    contour_step: 20
+    cadastre: false
+  - name: south-fd
+    query: ""
+    geofabrik: south-fd
+    contour_step: 20
+    cadastre: false
+  - name: north-caucasus-fd
+    query: ""
+    geofabrik: north-caucasus-fd
+    contour_step: 20
+    cadastre: false
+  - name: volga-fd
+    query: ""
+    geofabrik: volga-fd
+    contour_step: 20
+    cadastre: false
+  - name: ural-fd
+    query: ""
+    geofabrik: ural-fd
+    contour_step: 20
+    cadastre: false
+  - name: siberian-fd
+    query: ""
+    geofabrik: siberian-fd
+    contour_step: 20
+    cadastre: false
+  - name: far-eastern-fd
+    query: ""
+    geofabrik: far-eastern-fd
+    contour_step: 20
+    cadastre: false
+  - name: crimean-fd
+    query: ""
+    geofabrik: crimean-fd
+    contour_step: 10
+    cadastre: false

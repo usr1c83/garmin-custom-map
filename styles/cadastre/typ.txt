@@ -1,0 +1,19 @@
+; TYP source for the cadastre overlay. FID is overridden at compile time
+; with mkgmap --family-id (see scripts/compile_layer.sh).
+[_id]
+FID=3545
+ProductCode=1
+CodePage=1252
+[end]
+
+; parcel boundary: magenta dashed line
+[_line]
+Type=0x10800
+UseOrientation=N
+FontStyle=SmallFont
+Xpm="32 2 2 1"
+"! c #D000D0"
+"  c none"
+"!!!!!!!!    !!!!!!!!    !!!!!!!!"
+"!!!!!!!!    !!!!!!!!    !!!!!!!!"
+[end]

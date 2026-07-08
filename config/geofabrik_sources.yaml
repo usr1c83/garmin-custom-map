@@ -1,0 +1,17 @@
+# Geofabrik extract sources. Keys are referenced from region configs and
+# from config/release_regions.yaml (field `geofabrik`). A full URL can be
+# used anywhere a key is accepted.
+sources:
+  # федеральные округа РФ (у Geofabrik нет более мелких экстрактов по РФ)
+  central-fd: https://download.geofabrik.de/russia/central-fed-district-latest.osm.pbf
+  northwestern-fd: https://download.geofabrik.de/russia/northwestern-fed-district-latest.osm.pbf
+  south-fd: https://download.geofabrik.de/russia/south-fed-district-latest.osm.pbf
+  north-caucasus-fd: https://download.geofabrik.de/russia/north-caucasus-fed-district-latest.osm.pbf
+  volga-fd: https://download.geofabrik.de/russia/volga-fed-district-latest.osm.pbf
+  ural-fd: https://download.geofabrik.de/russia/ural-fed-district-latest.osm.pbf
+  siberian-fd: https://download.geofabrik.de/russia/siberian-fed-district-latest.osm.pbf
+  far-eastern-fd: https://download.geofabrik.de/russia/far-eastern-fed-district-latest.osm.pbf
+  crimean-fd: https://download.geofabrik.de/russia/crimean-fed-district-latest.osm.pbf
+  # Калининградская область — отдельный маленький экстракт, удобен для тестов
+  kaliningrad: https://download.geofabrik.de/russia/kaliningrad-latest.osm.pbf
+  russia: https://download.geofabrik.de/russia-latest.osm.pbf

@@ -1,0 +1,35 @@
+; TYP source for the contours overlay.
+; Colors follow OpenTopoMap garmin contours TYP (CC-BY-SA,
+; https://github.com/der-stefan/OpenTopoMap). FID is overridden at compile
+; time with mkgmap --family-id (see scripts/compile_layer.sh).
+[_id]
+FID=3544
+ProductCode=1
+CodePage=1252
+[end]
+
+; minor contour: thin brown line
+[_line]
+Type=0x20
+FontStyle=SmallFont
+Xpm="0 0 1 0"
+"0 c #C08040"
+[end]
+
+; medium contour
+[_line]
+Type=0x21
+LineWidth=1
+FontStyle=SmallFont
+Xpm="0 0 1 0"
+"0 c #B07030"
+[end]
+
+; major contour: wider, labelled
+[_line]
+Type=0x22
+LineWidth=2
+FontStyle=SmallFont
+Xpm="0 0 1 0"
+"0 c #A06020"
+[end]

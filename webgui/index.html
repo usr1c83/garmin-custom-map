@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>garmin-custom-map — выбор региона</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  html, body { margin:0; height:100%; font-family:system-ui,sans-serif; }
+  #app { display:flex; height:100%; }
+  #map { flex:1; }
+  #panel { width:340px; padding:14px; overflow:auto; background:#f7f7f7;
+           border-left:1px solid #ddd; box-sizing:border-box; }
+  h1 { font-size:16px; margin:0 0 10px; }
+  input[type=text] { width:100%; box-sizing:border-box; padding:6px; }
+  button { margin:4px 4px 4px 0; padding:6px 10px; cursor:pointer; }
+  #results div { padding:4px; cursor:pointer; border-bottom:1px solid #eee; font-size:13px; }
+  #results div:hover { background:#e8f0fe; }
+  pre { background:#eee; padding:8px; font-size:11px; white-space:pre-wrap;
+        word-break:break-all; max-height:180px; overflow:auto; }
+  .hint { font-size:12px; color:#555; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="map"></div>
+  <div id="panel">
+    <h1>Выбор региона для сборки карты</h1>
+    <p class="hint">1) Найдите админ-границу по названию <b>или</b> 2) нарисуйте
+    произвольный полигон кнопкой «Рисовать». Затем экспортируйте GeoJSON и
+    передайте его пайплайну (<code>BOUNDARY_GEOJSON=файл</code> или поле
+    <code>boundary_geojson</code> в GitHub Actions).</p>
+
+    <input type="text" id="q" placeholder="Черняховский муниципальный округ…">
+    <button id="search">Найти (Nominatim)</button>
+    <div id="results"></div>
+
+    <hr>
+    <button id="draw">✏ Рисовать полигон</button>
+    <button id="finish" disabled>✓ Завершить</button>
+    <button id="clear">✕ Очистить</button>
+    <p class="hint">Клик — добавить вершину, «Завершить» — замкнуть контур.</p>
+
+    <hr>
+    <button id="export" disabled>⬇ Скачать region.geojson</button>
+    <div>bbox: <code id="bbox">—</code></div>
+    <pre id="out">—</pre>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map = L.map('map').setView([54.63, 21.81], 9);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { attribution: '© OpenStreetMap' }).addTo(map);
+L.tileLayer('https://tile.opentopomap.org/{z}/{x}/{y}.png',
+  { attribution: '© OpenTopoMap (CC-BY-SA)', opacity: 0 }); // переключаемый эталон стиля
+
+let layer = null;        // текущая граница (L.GeoJSON или L.Polygon)
+let drawing = false;
+let drawPts = [];
+let drawPreview = null;
+
+function setGeometry(geojsonGeom, name) {
+  if (layer) map.removeLayer(layer);
+  layer = L.geoJSON({type:'Feature', properties:{name}, geometry:geojsonGeom},
+                    {style:{color:'#d00', weight:2, fillOpacity:0.08}}).addTo(map);
+  map.fitBounds(layer.getBounds());
+  const b = layer.getBounds();
+  document.getElementById('bbox').textContent =
+    [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
+      .map(x => x.toFixed(5)).join(',');
+  const fc = {type:'FeatureCollection', features:[
+    {type:'Feature', properties:{name: name || 'region'}, geometry: geojsonGeom}]};
+  document.getElementById('out').textContent = JSON.stringify(fc).slice(0, 4000);
+  document.getElementById('export').disabled = false;
+  window._exportFC = fc;
+}
+
+document.getElementById('search').onclick = async () => {
+  const q = document.getElementById('q').value.trim();
+  if (!q) return;
+  const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&polygon_geojson=1&q='
+              + encodeURIComponent(q);
+  const res = await fetch(url, {headers:{'Accept-Language':'ru'}});
+  const items = await res.json();
+  const box = document.getElementById('results');
+  box.innerHTML = '';
+  items.forEach(it => {
+    const div = document.createElement('div');
+    div.textContent = it.display_name + ' [' + it.type + ']';
+    div.onclick = () => {
+      if (it.geojson && (it.geojson.type === 'Polygon' || it.geojson.type === 'MultiPolygon'))
+        setGeometry(it.geojson, it.display_name.split(',')[0]);
+      else alert('У результата нет полигона границы — нарисуйте область вручную');
+    };
+    box.appendChild(div);
+  });
+  if (!items.length) box.innerHTML = '<div>ничего не найдено</div>';
+};
+
+document.getElementById('draw').onclick = () => {
+  drawing = true; drawPts = [];
+  document.getElementById('finish').disabled = false;
+  map.getContainer().style.cursor = 'crosshair';
+};
+map.on('click', e => {
+  if (!drawing) return;
+  drawPts.push([e.latlng.lat, e.latlng.lng]);
+  if (drawPreview) map.removeLayer(drawPreview);
+  drawPreview = L.polygon(drawPts, {color:'#00a', dashArray:'4'}).addTo(map);
+});
+document.getElementById('finish').onclick = () => {
+  if (drawPts.length < 3) { alert('нужно минимум 3 точки'); return; }
+  drawing = false;
+  map.getContainer().style.cursor = '';
+  document.getElementById('finish').disabled = true;
+  if (drawPreview) { map.removeLayer(drawPreview); drawPreview = null; }
+  const ring = drawPts.map(p => [p[1], p[0]]);
+  ring.push(ring[0]);
+  setGeometry({type:'Polygon', coordinates:[ring]}, 'drawn-region');
+  drawPts = [];
+};
+document.getElementById('clear').onclick = () => {
+  drawing = false; drawPts = [];
+  if (drawPreview) { map.removeLayer(drawPreview); drawPreview = null; }
+  if (layer) { map.removeLayer(layer); layer = null; }
+  document.getElementById('bbox').textContent = '—';
+  document.getElementById('out').textContent = '—';
+  document.getElementById('export').disabled = true;
+  document.getElementById('finish').disabled = true;
+  map.getContainer().style.cursor = '';
+};
+document.getElementById('export').onclick = () => {
+  const blob = new Blob([JSON.stringify(window._exportFC, null, 1)],
+                        {type:'application/geo+json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'region.geojson';
+  a.click();
+};
+</script>
+</body>
+</html>

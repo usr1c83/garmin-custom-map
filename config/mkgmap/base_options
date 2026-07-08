@@ -1,0 +1,33 @@
+# mkgmap options for the base (OpenTopoMap-styled) layer.
+# Adapted from OpenTopoMap garmin/opentopomap_options (CC-BY-SA,
+# https://github.com/der-stefan/OpenTopoMap): gmapsupp generation removed
+# (the join stage builds the combined file), latin1 replaced with cp1251
+# for Cyrillic labels. family-id / mapname / names come from the command line.
+product-id: 1
+product-version: 100
+draw-priority: 20
+copyright-message=OpenStreetMap contributors; style OpenTopoMap CC-BY-NC-SA 4.0
+code-page=1251
+lower-case
+max-jobs
+index
+split-name-index
+remove-ovm-work-files
+preserve-element-order
+housenumbers
+drive-on=detect,right
+dem-dists=9942,9942,19884,39768,53024,53024
+show-profiles=1
+reduce-point-density=4
+reduce-point-density-polygon=4
+min-size-polygon=8
+polygon-size-limits=24:12, 18:10, 16:8, 14:4, 13:2, 11:0
+route
+make-opposite-cycleways
+add-pois-to-areas
+add-pois-to-lines
+link-pois-to-ways
+process-destination
+process-exits
+order-by-decreasing-area
+keep-going
