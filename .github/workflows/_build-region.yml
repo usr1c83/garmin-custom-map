@@ -44,6 +44,10 @@ on:
         required: false
         type: string
         default: "6g"
+    secrets:
+      CADASTRE_PROXY:
+        description: "HTTP(S)-прокси с российским IP для прямой выгрузки с НСПД"
+        required: false
 
 jobs:
   build:
@@ -96,6 +100,7 @@ jobs:
           CONTOUR_STEP: ${{ inputs.contour_step }}
           INCLUDE_CADASTRE: ${{ inputs.include_cadastre }}
           CADASTRE_GEOJSON: ${{ inputs.cadastre_geojson }}
+          CADASTRE_PROXY: ${{ secrets.CADASTRE_PROXY }}
           JAVA_XMX: ${{ inputs.java_xmx }}
         run: ./run_all.sh
 

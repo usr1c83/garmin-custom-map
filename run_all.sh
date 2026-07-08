@@ -64,10 +64,17 @@ has_stage contours && "$HERE/scripts/make_contours.sh"
 if has_stage cadastre && [ "$INCLUDE_CADASTRE" = "1" ]; then
     CAD_ARGS=(--boundary "$WORK_DIR/boundary.geojson" --out "$WORK_DIR/cadastre.geojson")
     [ -n "$CADASTRE_GEOJSON" ] && CAD_ARGS+=(--from-geojson "$CADASTRE_GEOJSON")
+    [ -n "${CADASTRE_PROXY:-}" ] && CAD_ARGS+=(--proxy "$CADASTRE_PROXY")
     [ "${CADASTRE_INSECURE:-1}" = "1" ] && [ -z "$CADASTRE_GEOJSON" ] && CAD_ARGS+=(--insecure)
-    python3 "$HERE/scripts/fetch_cadastre.py" "${CAD_ARGS[@]}"
-    python3 "$HERE/scripts/cadastre_to_osm.py" --in "$WORK_DIR/cadastre.geojson" \
-        --out "$WORK_DIR/cadastre.osm"
+    # ПКК/НСПД геоблокирована вне РФ: недоступность кадастра не должна
+    # валить сборку — карта соберётся из base+contours
+    if python3 "$HERE/scripts/fetch_cadastre.py" "${CAD_ARGS[@]}"; then
+        python3 "$HERE/scripts/cadastre_to_osm.py" --in "$WORK_DIR/cadastre.geojson" \
+            --out "$WORK_DIR/cadastre.osm"
+    else
+        log "WARNING: cadastre data unavailable — building WITHOUT the cadastre layer"
+        rm -f "$WORK_DIR/cadastre.osm"
+    fi
 fi
 
 if has_stage compile; then

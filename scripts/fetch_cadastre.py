@@ -156,6 +156,9 @@ def main() -> None:
     p.add_argument("--delay", type=float, default=3.0, help="base pause between requests, s")
     p.add_argument("--insecure", action="store_true",
                    help="skip TLS verification (Russian Trusted Root CA)")
+    p.add_argument("--proxy",
+                   help="HTTP(S) proxy URL for reaching nspd.gov.ru from outside "
+                        "Russia, e.g. http://user:pass@host:port")
     p.add_argument("--no-clip", action="store_true",
                    help="keep parcels outside the boundary polygon")
     args = p.parse_args()
@@ -168,6 +171,10 @@ def main() -> None:
             gj = json.load(f)
         feats = gj["features"] if gj.get("type") == "FeatureCollection" else [gj]
     else:
+        if args.proxy:
+            urllib.request.install_opener(urllib.request.build_opener(
+                urllib.request.ProxyHandler({"http": args.proxy, "https": args.proxy})))
+            log(f"using proxy {args.proxy.split('@')[-1]}")
         ctx = make_opener(args.insecure)
         log(f"downloading parcels from {args.base_url} layer {args.layer}, bbox {bbox}")
         try:

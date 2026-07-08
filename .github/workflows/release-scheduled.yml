@@ -48,6 +48,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
     uses: ./.github/workflows/_build-region.yml
+    secrets: inherit
     with:
       region_name: ${{ matrix.region.name }}
       region_query: ${{ matrix.region.query }}
