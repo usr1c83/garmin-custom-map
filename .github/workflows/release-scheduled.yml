@@ -84,3 +84,4 @@ jobs:
             --title "Garmin maps $TAG" \
             --notes "$NOTES" || \
           gh release upload "$TAG" dist/*.img --clobber
+# registered 2026-07-08
