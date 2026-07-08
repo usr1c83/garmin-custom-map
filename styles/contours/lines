@@ -1,24 +1,23 @@
-# Contour lines overlay, rendered like OpenTopoMap's garmin contours style
+# Contour lines overlay, structured like OpenTopoMap's garmin contours style
 # (CC-BY-SA, https://github.com/der-stefan/OpenTopoMap garmin/style/contours).
 # pyhgtmap tags ways with contour=elevation + ele (meters) + contour_ext.
-# Garmin interprets labels of line types 0x20-0x22 as elevation in feet and
-# converts to the unit set on the device, hence conv:m=>ft.
+# Labels are kept in METERS (metric map; OTM upstream converts to feet).
 
 # major (every 10th line)
 contour=elevation & contour_ext=elevation_major
-    { name '${ele|conv:m=>ft}'; } [0x22 resolution 19-20 continue]
+    { name '${ele}'; } [0x22 resolution 19-20 continue]
 contour=elevation & contour_ext=elevation_major
-    { name '${ele|conv:m=>ft}'; } [0x22 resolution 21]
+    { name '${ele}'; } [0x22 resolution 21]
 
 # medium (every 5th line)
 contour=elevation & contour_ext=elevation_medium
-    { name '${ele|conv:m=>ft}'; } [0x21 resolution 20-20 continue]
+    { name '${ele}'; } [0x21 resolution 20-20 continue]
 contour=elevation & contour_ext=elevation_medium
-    { name '${ele|conv:m=>ft}'; } [0x21 resolution 22]
+    { name '${ele}'; } [0x21 resolution 22]
 
 # minor
 contour=elevation & contour_ext=elevation_minor
-    { name '${ele|conv:m=>ft}'; } [0x20 resolution 23]
+    { name '${ele}'; } [0x20 resolution 23]
 
 # safety net for untagged contour_ext
-contour=elevation { name '${ele|conv:m=>ft}'; } [0x20 resolution 23]
+contour=elevation { name '${ele}'; } [0x20 resolution 23]
