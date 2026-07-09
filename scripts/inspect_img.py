@@ -6,8 +6,11 @@ into the combined file. Standard library only.
 Usage: inspect_img.py gmapsupp.img [--expect FID,FID,...]
 """
 import argparse
+import signal
 import struct
 import sys
+
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # tolerate `| head` pipelines
 
 
 def read_fat(data: bytes):

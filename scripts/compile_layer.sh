@@ -75,6 +75,16 @@ EXTRA=()
 if [ "$LAYER" = "base" ]; then
     [ -d "$TOOLS_DIR/bounds" ] && EXTRA+=("--bounds=$TOOLS_DIR/bounds")
     [ -d "$TOOLS_DIR/sea" ]    && EXTRA+=("--precomp-sea=$TOOLS_DIR/sea")
+    # DEM («карта высот»): отмывка рельефа и высота/профиль на приборе.
+    # Тайлы SRTM уже скачаны стадией contours в $HGT_DIR/<ИСТОЧНИК>/
+    if [ "$WITH_DEM" = "1" ]; then
+        DEM_DIR="$HGT_DIR/$(echo "${HGT_SOURCE:-view3}" | tr '[:lower:]' '[:upper:]')"
+        if [ -d "$DEM_DIR" ] && ls "$DEM_DIR"/*.hgt >/dev/null 2>&1; then
+            EXTRA+=("--dem=$DEM_DIR")
+        else
+            log "[$LAYER] WITH_DEM=1, but no hgt tiles in $DEM_DIR (run the contours stage first) — DEM skipped"
+        fi
+    fi
 fi
 
 log "[$LAYER] mkgmap: family-id=$FID ${#TILES[@]} tile(s)"

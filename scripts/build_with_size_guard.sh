@@ -46,6 +46,20 @@ if [ "$SIZE_MB" -le "$MAX_IMG_MB" ]; then
     echo "size-guard: ${SIZE_MB} MiB <= ${MAX_IMG_MB} MiB — OK"
     exit 0
 fi
+
+# последний рубеж: пересборка без встроенной карты высот (DEM — самая
+# тяжёлая часть base-слоя; горизонтали при этом остаются)
+if [ "${WITH_DEM:-1}" = "1" ]; then
+    echo "size-guard: ${SIZE_MB} MiB still over — final attempt WITHOUT embedded DEM"
+    export WITH_DEM=0
+    "$HERE/run_all.sh" --stages compile,join
+    SIZE_MB=$(( $(stat -c%s "$IMG") / 1024 / 1024 ))
+    if [ "$SIZE_MB" -le "$MAX_IMG_MB" ]; then
+        echo "size-guard: ${SIZE_MB} MiB <= ${MAX_IMG_MB} MiB — OK (DEM dropped)"
+        exit 0
+    fi
+fi
+
 echo "size-guard: still ${SIZE_MB} MiB after ${MAX_TRIES} rebuilds (step ${CONTOUR_STEP} m)." >&2
 echo "size-guard: split the region in config/release_regions.yaml or raise contour_step." >&2
 exit 2

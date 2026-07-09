@@ -31,6 +31,9 @@ INCLUDE_CADASTRE="${INCLUDE_CADASTRE:-0}"
 CADASTRE_GEOJSON="${CADASTRE_GEOJSON:-}" # fallback: pre-exported parcels GeoJSON
 WITH_SEA="${WITH_SEA:-0}"               # download precomp-sea (~800 MB, needed for coastal maps)
 WITH_BOUNDS="${WITH_BOUNDS:-0}"         # download bounds (~400 MB, needed for address search)
+WITH_DEM="${WITH_DEM:-1}"               # embed DEM into the base layer (hillshading +
+                                        # elevation profile on device; uses the same
+                                        # SRTM tiles downloaded for the contours)
 
 # Layer identity. Each layer gets its own family-id so the device lists it
 # as a separate map product that can be toggled independently.
