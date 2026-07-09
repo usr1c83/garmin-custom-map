@@ -152,3 +152,36 @@ opentopomap.org с тремя независимо переключаемыми 
   публикация при частичных сбоях, retrigger.yml (перезапуск джобов
   пушем при недоступности API), пережиты два инцидента GitHub Actions
   (нехватка раннеров).
+
+## Доработки (пятая итерация)
+
+- [x] Карта высот (DEM) встроена в base-слой (mkgmap --dem из SRTM-кеша):
+  отмывка, высота в точке, профиль маршрута; WITH_DEM=0 отключает
+- [x] Видимые номера домов (правило addr:housenumber + TYP-точка 0x11500,
+  вставка до <finalize>; проверено по подписям в собранной карте)
+- [x] Ретраи скачивания .poly (make_boundary), автоочистка старых релизов
+  maps-* (KEEP=2), публикация при частичных сбоях матрицы
+- [x] При превышении 2 GiB карта режется на части .partN.img (жадная
+  упаковка тайлов, адаптивный бюджет, у каждой части свои TYP/MDR) —
+  качество DEM/горизонталей не снижается; проверено в бою (Сибирь, ДВ)
+- [x] aria2 с докачкой для всех скачиваний (scripts/download.sh, fallback
+  curl -C -); починен баг валидации osmium fileinfo на *.tmp
+- [x] cron каждые 2 месяца + keepalive.yml против 60-дневного отключения
+- [x] Служебные workflow: cleanup-releases (удаление релизов с тегами),
+  retrigger (перезапуск упавших джобов пушем .retrigger — выручил при
+  инциденте GitHub «Delays starting Actions runs»)
+
+## ИТОГ: релиз maps-2026-07-09
+
+| Регион | Размер |
+|---|---|
+| central-fd | 848 MiB |
+| crimean-fd | 39 MiB |
+| far-eastern-fd | part1 1641 + part2 949 MiB |
+| kaliningrad | 52 MiB |
+| north-caucasus-fd | 182 MiB |
+| northwestern-fd | 1114 MiB |
+| siberian-fd | part1 1662 + part2 611 MiB |
+| south-fd | 339 MiB |
+| ural-fd | 653 MiB |
+| volga-fd | 949 MiB |
