@@ -61,7 +61,7 @@
 ### Вариант 2: без Docker (Linux / WSL)
 
 ```bash
-sudo apt install openjdk-21-jre-headless osmium-tool python3-pip
+sudo apt install openjdk-21-jre-headless osmium-tool aria2 python3-pip
 pip install pyhgtmap
 ./run_all.sh --config config/examples/test-chernyakhovsk.env
 ```

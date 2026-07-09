@@ -16,7 +16,7 @@ fetch_zip() {
         return
     fi
     log "downloading $name"
-    curl -sSL --retry 4 --retry-delay 3 -o "$name.zip" "$url"
+    "$REPO_DIR/scripts/download.sh" "$url" "$name.zip"
     unzip -qo "$name.zip"
     rm -f "$name.zip"
 }
@@ -32,12 +32,12 @@ log "mkgmap version: $(java -jar "$MKGMAP_JAR" --version 2>&1 | grep -v '^Picked
 # Optional heavyweight helpers for the base layer
 if [ "$WITH_BOUNDS" = "1" ] && [ ! -d "$TOOLS_DIR/bounds" ]; then
     log "downloading bounds (~400 MB, used for the address index)"
-    curl -sSL --retry 4 -o bounds.zip "https://www.thkukuk.de/osm/data/bounds-latest.zip"
+    "$REPO_DIR/scripts/download.sh" "https://www.thkukuk.de/osm/data/bounds-latest.zip" bounds.zip
     mkdir -p bounds && unzip -qo bounds.zip -d bounds && rm bounds.zip
 fi
 if [ "$WITH_SEA" = "1" ] && [ ! -d "$TOOLS_DIR/sea" ]; then
     log "downloading precompiled sea (~800 MB, used for coastlines)"
-    curl -sSL --retry 4 -o sea.zip "https://www.thkukuk.de/osm/data/sea-latest.zip"
+    "$REPO_DIR/scripts/download.sh" "https://www.thkukuk.de/osm/data/sea-latest.zip" sea.zip
     mkdir -p sea && unzip -qo sea.zip -d sea && rm sea.zip
 fi
 

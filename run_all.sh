@@ -85,7 +85,7 @@ if has_stage cadastre && [ "$INCLUDE_CADASTRE" = "1" ]; then
             for ext in geojson.gz geojson; do
                 URL="$DATA_BASE/$REGION_NAME.$ext"
                 log "cadastre source 3/4: trying $URL"
-                if curl -sSfL --max-time 300 --retry 2 -o "$WORK_DIR/cadastre_remote.$ext" "$URL" 2>/dev/null; then
+                if "$HERE/scripts/download.sh" "$URL" "$WORK_DIR/cadastre_remote.$ext" 2>/dev/null; then
                     [ "$ext" = "geojson.gz" ] && gunzip -f "$WORK_DIR/cadastre_remote.geojson.gz"
                     CADASTRE_GEOJSON="$WORK_DIR/cadastre_remote.geojson"
                     log "cadastre source 3/4: downloaded $(du -h "$CADASTRE_GEOJSON" | cut -f1)"
