@@ -9,6 +9,10 @@ draw-priority: 20
 copyright-message=OpenStreetMap contributors; style OpenTopoMap CC-BY-NC-SA 4.0
 code-page=1251
 lower-case
+# предпочитать русское имя объекта: name:ru, иначе обычный name (для РФ он
+# и так почти всегда русский). int_name/name:en сознательно НЕ включены —
+# иначе часть подписей стала бы латиницей
+name-tag-list=name:ru,name
 max-jobs
 index
 split-name-index
