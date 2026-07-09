@@ -18,9 +18,9 @@ on:
         required: true
         default: "chernyakhovsk"
       region_query:
-        description: "Регион по названию (Nominatim, берётся реальная граница)"
+        description: "Регион по названию, напр. 'Суздальский район' (Nominatim, реальная граница). Пусто = весь geofabrik-экстракт. ВАЖНО: непустой default тут нельзя — GitHub подставляет default вместо пустого ввода"
         required: false
-        default: "Черняховский муниципальный округ, Калининградская область"
+        default: ""
       bbox:
         description: "ИЛИ прямоугольник: west,south,east,north"
         required: false
