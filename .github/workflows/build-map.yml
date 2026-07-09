@@ -45,6 +45,10 @@ on:
         description: "Путь в репо к готовой выгрузке участков (QGIS)"
         required: false
         default: ""
+      java_xmx:
+        description: "Память JVM (для целых фед. округов ставьте 10g)"
+        required: false
+        default: "6g"
 
 jobs:
   build:
@@ -59,3 +63,4 @@ jobs:
       contour_step: ${{ inputs.contour_step }}
       include_cadastre: ${{ inputs.include_cadastre }}
       cadastre_geojson: ${{ inputs.cadastre_geojson }}
+      java_xmx: ${{ inputs.java_xmx }}
