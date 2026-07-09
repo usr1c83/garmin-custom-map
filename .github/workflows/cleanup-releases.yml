@@ -1,0 +1,33 @@
+# ============================================================================
+# СЛУЖЕБНЫЙ: удаление релизов (например, тестовых) вместе с тегами.
+# Actions → «cleanup-releases» → Run workflow → перечислить теги через запятую.
+# ============================================================================
+name: cleanup-releases
+
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "теги релизов для удаления, через запятую"
+        required: true
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Delete releases and tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAGS: ${{ inputs.tags }}
+        run: |
+          IFS=',' read -ra LIST <<< "$TAGS"
+          for tag in "${LIST[@]}"; do
+            tag="$(echo "$tag" | xargs)"
+            [ -n "$tag" ] || continue
+            echo "deleting release + tag: $tag"
+            gh release delete "$tag" --yes --cleanup-tag || echo "::warning::$tag not found"
+          done
+          gh release list

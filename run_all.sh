@@ -62,15 +62,42 @@ has_stage osm && "$HERE/scripts/fetch_osm.sh"
 has_stage contours && "$HERE/scripts/make_contours.sh"
 
 if has_stage cadastre && [ "$INCLUDE_CADASTRE" = "1" ]; then
-    # авто-подхват выгрузки по имени региона (cadastre/<region>.geojson)
+    # Источники кадастра перебираются по порядку, каждый шаг ограничен по
+    # времени — сборка не может зависнуть на этом этапе:
+    #   1) CADASTRE_GEOJSON — явно указанный файл;
+    #   2) cadastre/<region>.geojson — выгрузка, закоммиченная в репо;
+    #   3) <region>.geojson(.gz) из релиза-хранилища (тег cadastre-data);
+    #   4) прямая выгрузка с НСПД (через CADASTRE_PROXY; без прокси —
+    #      только вне CI, портал геоблокирован за рубежом);
+    #   5) ничего не вышло — слой пропускается, сборка продолжается.
     if [ -z "$CADASTRE_GEOJSON" ] && [ -s "$HERE/cadastre/$REGION_NAME.geojson" ]; then
         CADASTRE_GEOJSON="$HERE/cadastre/$REGION_NAME.geojson"
-        log "using committed cadastre export $CADASTRE_GEOJSON"
+        log "cadastre source 2/4: committed export $CADASTRE_GEOJSON"
+    fi
+    if [ -z "$CADASTRE_GEOJSON" ]; then
+        # хранилище выгрузок: ассеты релиза cadastre-data этого же репо
+        # (или любой сервер — переопределяется CADASTRE_DATA_BASE)
+        DATA_BASE="${CADASTRE_DATA_BASE:-}"
+        if [ -z "$DATA_BASE" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
+            DATA_BASE="https://github.com/$GITHUB_REPOSITORY/releases/download/cadastre-data"
+        fi
+        if [ -n "$DATA_BASE" ]; then
+            for ext in geojson.gz geojson; do
+                URL="$DATA_BASE/$REGION_NAME.$ext"
+                log "cadastre source 3/4: trying $URL"
+                if curl -sSfL --max-time 300 --retry 2 -o "$WORK_DIR/cadastre_remote.$ext" "$URL" 2>/dev/null; then
+                    [ "$ext" = "geojson.gz" ] && gunzip -f "$WORK_DIR/cadastre_remote.geojson.gz"
+                    CADASTRE_GEOJSON="$WORK_DIR/cadastre_remote.geojson"
+                    log "cadastre source 3/4: downloaded $(du -h "$CADASTRE_GEOJSON" | cut -f1)"
+                    break
+                fi
+            done
+        fi
     fi
     if [ -z "$CADASTRE_GEOJSON" ] && [ -z "${CADASTRE_PROXY:-}" ] && [ "${GITHUB_ACTIONS:-}" = "true" ]; then
-        # в CI без источника прямая попытка бессмысленна (геоблокировка НСПД)
-        # и лишь сжигает ~10 минут на таймаутах
-        log "cadastre: skipped — no export at cadastre/$REGION_NAME.geojson and no CADASTRE_PROXY secret"
+        # источник 4 недоступен из CI без прокси (геоблокировка НСПД):
+        # пропускаем сразу, не сжигая минуты на таймаутах
+        log "cadastre: skipped — no export (repo/release) and no CADASTRE_PROXY secret"
         rm -f "$WORK_DIR/cadastre.osm"
         INCLUDE_CADASTRE=0
     fi

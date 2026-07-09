@@ -1,46 +1,59 @@
+# ============================================================================
+# ПЕРЕИСПОЛЬЗУЕМАЯ СБОРКА ОДНОГО РЕГИОНА (вызывается из build-map.yml и
+# release-scheduled.yml, напрямую не запускается).
+#
+# Что здесь можно менять:
+#   * java_xmx (default)  — память JVM для splitter/mkgmap;
+#   * timeout-minutes     — предел времени job (макс. 360 у GitHub);
+#   * retention-days      — сколько хранить артефакт ручной сборки;
+#   * WITH_BOUNDS         — "0", если адресный поиск не нужен (быстрее);
+#   * MAX_IMG_MB/MAX_TRIES — порог size-guard (см. Build map ниже).
+# ============================================================================
 name: build-region (reusable)
 
 on:
   workflow_call:
     inputs:
       region_name:
-        description: "слуг региона (имя выходного файла)"
+        description: "слуг региона — станет именем файла <region>_gmapsupp.img"
         required: true
         type: string
       region_query:
-        description: "запрос в Nominatim (пусто = весь geofabrik-экстракт)"
+        description: "запрос в Nominatim (реальная админ-граница); пусто = весь geofabrik-экстракт"
         required: false
         type: string
         default: ""
       bbox:
-        description: "west,south,east,north (используется вместо region_query)"
+        description: "west,south,east,north — прямоугольник вместо region_query"
         required: false
         type: string
         default: ""
       boundary_geojson:
-        description: "путь в репозитории к GeoJSON из webgui"
+        description: "путь в репозитории к GeoJSON из webgui (вместо region_query/bbox)"
         required: false
         type: string
         default: ""
       geofabrik:
-        description: "ключ из config/geofabrik_sources.yaml или URL"
+        description: "ключ из config/geofabrik_sources.yaml или полный URL экстракта"
         required: true
         type: string
       contour_step:
-        description: "шаг горизонталей, м"
+        description: "шаг горизонталей, м (size-guard может автоматически увеличить)"
         required: false
         type: string
         default: "10"
       include_cadastre:
+        description: "1 = собирать кадастровый слой (источники см. run_all.sh)"
         required: false
         type: string
         default: "0"
       cadastre_geojson:
-        description: "путь в репозитории к выгрузке участков (fallback ПКК)"
+        description: "путь в репозитории к готовой выгрузке участков"
         required: false
         type: string
         default: ""
       java_xmx:
+        description: "куча JVM; для целых фед. округов ставится 10g"
         required: false
         type: string
         default: "6g"
@@ -52,10 +65,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    timeout-minutes: 350          # почти максимум GitHub (360)
     steps:
       - uses: actions/checkout@v6
 
+      # На раннере ~14 ГБ свободно — для больших экстрактов (ЦФО ~4 ГБ pbf +
+      # тайлы + рельеф) выкидываем предустановленный софт, получаем ещё ~20 ГБ
       - name: Free disk space (large regions)
         run: |
           sudo rm -rf /usr/local/lib/android /opt/hostedtoolcache/CodeQL \
@@ -79,6 +94,8 @@ jobs:
           osmium --version | head -1
           pyhgtmap --version
 
+      # Кешируются: mkgmap/splitter/bounds (tools/) и SRTM-тайлы (hgt/).
+      # Ключ включает регион — у каждого региона свой набор тайлов рельефа.
       - name: Cache mkgmap/splitter and SRTM tiles
         uses: actions/cache@v5
         with:
@@ -90,6 +107,11 @@ jobs:
             toolchain-hgt-${{ inputs.geofabrik }}-
             toolchain-hgt-
 
+      # build_with_size_guard.sh = run_all.sh + контроль размера: если
+      # итоговый img больше MAX_IMG_MB (1950 МиБ, чуть ниже лимита GitHub
+      # в 2 GiB на файл релиза), шаг горизонталей увеличивается на 5 м и
+      # слой пересобирается — до MAX_TRIES раз. Пороги можно переопределить
+      # здесь через env: MAX_IMG_MB / MAX_TRIES.
       - name: Build map
         env:
           REGION_NAME: ${{ inputs.region_name }}
@@ -102,12 +124,9 @@ jobs:
           CADASTRE_GEOJSON: ${{ inputs.cadastre_geojson }}
           CADASTRE_PROXY: ${{ secrets.CADASTRE_PROXY }}
           JAVA_XMX: ${{ inputs.java_xmx }}
-          # предвычисленные границы НП (~400 МБ, кешируются) — нужны для
-          # корректного адресного поиска на приборе
+          # предвычисленные границы НП (~400 МБ, кешируются) — без них
+          # адресный поиск на приборе хуже привязывает улицы к городам
           WITH_BOUNDS: "1"
-        # size-guard: если img превышает лимит GitHub Releases (2 GiB на файл),
-        # шаг горизонталей автоматически увеличивается на 5 м и слой
-        # пересобирается (до 3 попыток)
         run: ./scripts/build_with_size_guard.sh
 
       - name: Collect result
@@ -118,6 +137,8 @@ jobs:
           SIZE=$(stat -c%s dist/*.img)
           echo "### ${{ inputs.region_name }}: $(numfmt --to=iec-i --suffix=B "$SIZE")" >> "$GITHUB_STEP_SUMMARY"
 
+      # Артефакт подхватывает release-scheduled (job release) либо скачивается
+      # вручную со страницы запуска (ручная сборка build-map)
       - uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.region_name }}-gmapsupp

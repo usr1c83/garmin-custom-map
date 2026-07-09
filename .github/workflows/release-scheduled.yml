@@ -1,25 +1,48 @@
+# ============================================================================
+# ПЛАНОВЫЕ РЕЛИЗЫ КАРТ ПО ФЕДЕРАЛЬНЫМ ОКРУГАМ
+#
+# Два способа запуска:
+#   * автоматически по cron (строка ниже) — собираются ВСЕ регионы из
+#     config/release_regions.yaml и публикуются одним релизом maps-ГГГГ-ММ-ДД;
+#   * вручную: Actions → «release-scheduled» → Run workflow. Пустое поле
+#     only = все регионы (как по cron); для теста можно ограничить:
+#     only = kaliningrad,crimean-fd.
+#
+# Что здесь можно менять:
+#   * расписание — строка cron (сейчас 1 января и 1 июля, 03:00 UTC);
+#   * список регионов/шаг горизонталей/кадастр — НЕ здесь, а в
+#     config/release_regions.yaml;
+#   * java_xmx — память JVM для сборки больших округов.
+#
+# ВАЖНО (особенности GitHub):
+#   * cron работает только если этот файл лежит в ветке по умолчанию;
+#   * в форках scheduled-workflow надо включить вручную (Actions → Enable);
+#   * при неактивности репозитория 60 дней GitHub отключает cron —
+#     реактивируется кнопкой на странице workflow.
+# ============================================================================
 name: release-scheduled (federal districts)
 
 on:
   schedule:
-    # раз в полгода: 1 января и 1 июля, 03:00 UTC
-    - cron: "0 3 1 1,7 *"
+    - cron: "0 3 1 1,7 *"     # ← расписание: мин час день месяц день-недели
   workflow_dispatch:
     inputs:
       only:
-        description: "собрать только эти регионы (имена через запятую, пусто = все)"
+        description: "собрать только эти регионы (имена через запятую; пусто = все)"
         required: false
         default: ""
       tag:
-        description: "тег релиза (пусто = maps-YYYY-MM-DD)"
+        description: "тег релиза (пусто = maps-ГГГГ-ММ-ДД)"
         required: false
         default: ""
 
+# один релизный прогон за раз; новый не отменяет идущий
 concurrency:
   group: release-scheduled
   cancel-in-progress: false
 
 jobs:
+  # --- 1. читаем config/release_regions.yaml и строим матрицу регионов ---
   plan:
     runs-on: ubuntu-latest
     outputs:
@@ -42,13 +65,14 @@ jobs:
           jq . sel.json
           echo "matrix={\"region\":$(jq -c . sel.json)}" >> "$GITHUB_OUTPUT"
 
+  # --- 2. параллельная сборка каждого региона (общая логика в _build-region) ---
   build:
     needs: plan
     strategy:
-      fail-fast: false
+      fail-fast: false          # упавший регион не отменяет остальные
       matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
     uses: ./.github/workflows/_build-region.yml
-    secrets: inherit
+    secrets: inherit            # CADASTRE_PROXY, если секрет создан
     with:
       region_name: ${{ matrix.region.name }}
       region_query: ${{ matrix.region.query }}
@@ -58,12 +82,14 @@ jobs:
       cadastre_geojson: ${{ matrix.region.cadastre_geojson || '' }}
       java_xmx: "10g"
 
+  # --- 3. публикация: все собранные .img одним релизом ---
   release:
     needs: build
+    # публикуем даже при частичных сбоях — в релиз попадут успешные регионы
     if: ${{ always() && contains(needs.build.result, 'success') }}
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write           # право создавать релизы (токен по умолчанию)
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
@@ -78,10 +104,11 @@ jobs:
         run: |
           TAG="${TAG_INPUT:-maps-$(date -u +%F)}"
           ls -lh dist/
-          NOTES="Автосборка карт Garmin (base OpenTopoMap + горизонтали + кадастр).
+          NOTES="Автосборка карт Garmin (топооснова OpenTopoMap + горизонтали + кадастр).
           Слои включаются на устройстве независимо: Setup → Map → Map Information.
+          Установка: скопировать <регион>_gmapsupp.img в папку Garmin/ на карте памяти.
           Данные: © OpenStreetMap contributors (Geofabrik), viewfinderpanoramas.org.
-          Стиль: OpenTopoMap (CC-BY-NC-SA 4.0)."
+          Стиль: OpenTopoMap (CC-BY-NC-SA 4.0, некоммерческое использование)."
           gh release create "$TAG" dist/*.img \
             --title "Garmin maps $TAG" \
             --notes "$NOTES" || \

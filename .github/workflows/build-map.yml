@@ -1,26 +1,36 @@
+# ============================================================================
+# РУЧНАЯ СБОРКА ПРОИЗВОЛЬНОГО РЕГИОНА
+#
+# Запуск: вкладка Actions → «build-map (manual region)» → Run workflow.
+# Результат: файл <region>_gmapsupp.img в Artifacts страницы запуска
+# (хранится 30 дней; поменять — retention-days в _build-region.yml).
+#
+# Дефолты полей ниже — маленький тестовый регион (~4 мин); подставьте свои.
+# Вся логика сборки — в _build-region.yml, здесь только форма запуска.
+# ============================================================================
 name: build-map (manual region)
 
 on:
   workflow_dispatch:
     inputs:
       region_name:
-        description: "Имя региона (слуг, имя файла)"
+        description: "Имя региона (латиницей — станет именем файла)"
         required: true
         default: "chernyakhovsk"
       region_query:
-        description: "Запрос в Nominatim (реальная админ-граница)"
+        description: "Регион по названию (Nominatim, берётся реальная граница)"
         required: false
         default: "Черняховский муниципальный округ, Калининградская область"
       bbox:
-        description: "bbox west,south,east,north (вместо region_query)"
+        description: "ИЛИ прямоугольник: west,south,east,north"
         required: false
         default: ""
       boundary_geojson:
-        description: "путь в репо к GeoJSON из webgui (вместо region_query/bbox)"
+        description: "ИЛИ путь в репо к GeoJSON из webgui/index.html"
         required: false
         default: ""
       geofabrik:
-        description: "ключ экстракта (kaliningrad, central-fd, ...) или URL"
+        description: "Экстракт OSM: ключ из config/geofabrik_sources.yaml или URL"
         required: true
         default: "kaliningrad"
       contour_step:
@@ -28,18 +38,18 @@ on:
         required: false
         default: "10"
       include_cadastre:
-        description: "Слой кадастра (1/0)"
+        description: "Кадастровый слой: 1 = да, 0 = нет"
         required: false
         default: "0"
       cadastre_geojson:
-        description: "путь в репо к готовой выгрузке участков (fallback ПКК)"
+        description: "Путь в репо к готовой выгрузке участков (QGIS)"
         required: false
         default: ""
 
 jobs:
   build:
     uses: ./.github/workflows/_build-region.yml
-    secrets: inherit
+    secrets: inherit          # пробрасывает CADASTRE_PROXY, если секрет создан
     with:
       region_name: ${{ inputs.region_name }}
       region_query: ${{ inputs.region_query }}

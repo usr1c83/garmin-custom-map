@@ -42,3 +42,18 @@
 Учтите размер: границы участков целого района — обычно десятки мегабайт;
 GitHub не принимает файлы больше 100 МБ (при необходимости разбейте регион
 или упростите геометрию в QGIS: Vector → Geometry Tools → Simplify).
+
+## Большие выгрузки: релиз-хранилище `cadastre-data`
+
+Файлы крупнее 100 МБ в git не влезут — вместо этого загрузите их ассетами
+в специальный релиз с тегом **`cadastre-data`** (создать один раз):
+
+```bash
+gh release create cadastre-data --title "Cadastre data" --notes "выгрузки участков"
+gh release upload cadastre-data central-fd.geojson.gz   # gzip поддерживается
+```
+
+(или через веб: Releases → Draft a new release → тег `cadastre-data` →
+перетащить файлы). Имя ассета = `<имя-региона>.geojson` или
+`<имя-региона>.geojson.gz`. При сборке CI сам проверит это хранилище —
+порядок источников описан в [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md).
