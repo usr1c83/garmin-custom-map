@@ -1,0 +1,30 @@
+# ============================================================================
+# KEEPALIVE: не даёт GitHub отключить плановые сборки.
+#
+# GitHub автоматически отключает scheduled-workflow после 60 дней без
+# активности в репозитории (без коммитов). Этот workflow раз в месяц
+# дёргает API «enable workflow» для себя и для release-scheduled — вызов
+# сбрасывает таймер отключения, коммиты не нужны.
+# ============================================================================
+name: keepalive
+
+on:
+  schedule:
+    - cron: "17 4 5 * *"      # 5-е число каждого месяца, 04:17 UTC
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Reset scheduled-workflow inactivity timers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for wf in release-scheduled.yml keepalive.yml; do
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/enable" \
+              && echo "re-enabled $wf" \
+              || echo "::warning::could not re-enable $wf"
+          done
