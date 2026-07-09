@@ -89,11 +89,27 @@ def geometry_from_geojson_file(path: str) -> dict:
     raise SystemExit(f"{path}: unsupported GeoJSON type {gj.get('type')}")
 
 
+def http_text(url: str, retries: int = 5) -> str:
+    """Fetch a URL with retries — CI runs hit transient timeouts when many
+    parallel jobs download from the same host (seen with Geofabrik .poly)."""
+    last = None
+    for attempt in range(retries):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return r.read().decode()
+        except Exception as e:  # noqa: BLE001
+            last = e
+            wait = 2 ** (attempt + 1)
+            print(f"download attempt {attempt + 1}/{retries} failed: {e}; "
+                  f"retry in {wait}s", file=sys.stderr)
+            time.sleep(wait)
+    raise SystemExit(f"failed to download {url} after {retries} tries: {last}")
+
+
 def geometry_from_poly(source: str) -> dict:
     if source.startswith(("http://", "https://")):
-        req = urllib.request.Request(source, headers={"User-Agent": UA})
-        with urllib.request.urlopen(req, timeout=60) as r:
-            text = r.read().decode()
+        text = http_text(source)
     else:
         with open(source, encoding="utf-8") as f:
             text = f.read()
