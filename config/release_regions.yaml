@@ -73,12 +73,12 @@ regions:
   - name: belarus
     query: ""
     geofabrik: belarus
-    contour_step: 10
+    contour_step: 20
     cadastre: false
   - name: ukraine
     query: ""
     geofabrik: ukraine
-    contour_step: 10
+    contour_step: 20
     cadastre: false
   - name: lithuania
     query: ""
@@ -113,12 +113,12 @@ regions:
   - name: kazakhstan
     query: ""
     geofabrik: kazakhstan
-    contour_step: 10
+    contour_step: 20
     cadastre: false
   - name: uzbekistan
     query: ""
     geofabrik: uzbekistan
-    contour_step: 10
+    contour_step: 20
     cadastre: false
   - name: tajikistan
     query: ""
@@ -133,5 +133,5 @@ regions:
   - name: mongolia
     query: ""
     geofabrik: mongolia
-    contour_step: 10
+    contour_step: 20
     cadastre: false
