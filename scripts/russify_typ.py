@@ -98,11 +98,20 @@ RU = {
     "wind turbine": "ветрогенератор",
     "wine": "виноградник",
     "built-up area": "застройка",
-    # German-only strings that have no English counterpart in a block
+    # German-only strings that have no English counterpart in their block
     "badestelle": "пляж",
     "schutzhütte": "укрытие",
     "bebauung": "застройка",
+    "windkraftanlage": "ветрогенератор",
+    "weg": "дорога",
 }
+
+# String line, tolerating both hex (0x02/0x04) and decimal (2/4) language codes
+_STRING_RE = re.compile(r"(\s*)String=(0x[0-9a-fA-F]+|\d+),(.*)$")
+
+
+def _is_english(code: str) -> bool:
+    return code.lower() in ("0x04", "4")
 
 _missing = set()
 
@@ -119,25 +128,29 @@ def translate(value: str) -> str:
 
 
 def process_block(lines):
-    # Russian value for this type = translated English (0x04) if present,
-    # else translated German (0x02).
+    # Russian value for this type: prefer translating the English string
+    # (code 0x04/4), else any other String in the block (usually German).
     ru_val = None
     for ln in lines:
-        m = re.match(r"\s*String=0x04,(.*)$", ln)
-        if m:
-            ru_val = translate(m.group(1))
+        m = _STRING_RE.match(ln)
+        if m and _is_english(m.group(2)):
+            ru_val = translate(m.group(3))
     if ru_val is None:
         for ln in lines:
-            m = re.match(r"\s*String=0x02,(.*)$", ln)
+            m = _STRING_RE.match(ln)
             if m:
-                ru_val = translate(m.group(1))
+                ru_val = translate(m.group(3))
+                break
 
+    if ru_val is None:
+        return lines
+    # rewrite every String line's text to the Russian value, keeping its
+    # original language code (hex or decimal)
     out = []
     for ln in lines:
-        m = re.match(r"(\s*)String=0x0[24],(.*)$", ln)
-        if m and ru_val is not None:
-            out.append(f"{m.group(1)}{'String=0x04,'}{ru_val}"
-                       if "0x04" in ln else f"{m.group(1)}String=0x02,{ru_val}")
+        m = _STRING_RE.match(ln)
+        if m:
+            out.append(f"{m.group(1)}String={m.group(2)},{ru_val}")
         else:
             out.append(ln)
     return out
@@ -166,9 +179,16 @@ def main() -> None:
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(out) + "\n")
 
-    ru02 = sum(1 for l in out if re.match(r"\s*String=0x02,.*[А-Яа-яЁё]", l))
-    ru04 = sum(1 for l in out if re.match(r"\s*String=0x04,.*[А-Яа-яЁё]", l))
-    print(f"[russify_typ] {path}: Russian strings — 0x02:{ru02} 0x04:{ru04}")
+    ru = non_ru = 0
+    for l in out:
+        m = _STRING_RE.match(l)
+        if not m or not m.group(3).strip():
+            continue
+        if re.search(r"[А-Яа-яЁё]", m.group(3)):
+            ru += 1
+        else:
+            non_ru += 1
+    print(f"[russify_typ] {path}: Russian strings {ru}, still non-Cyrillic {non_ru}")
     if _missing:
         print(f"[russify_typ] no translation for: {sorted(_missing)}", file=sys.stderr)
 

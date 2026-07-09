@@ -61,4 +61,51 @@ EOF
     echo "[fetch_style] housenumber point added to TYP"
 fi
 
+# перевод хардкод-подписей default_name '...' в правилах стиля (эти надписи
+# рисуются для объектов без тега name: посольство, замок и т.п.)
+python3 - "$DEST/style/opentopomap" <<'EOF'
+import os, re, sys
+root = sys.argv[1]
+RU = {
+    "Embassy": "Посольство",
+    "Emergency Phone": "Экстренный телефон",
+    "Services": "Зона обслуживания",
+    "Schloss": "Замок",
+}
+rx = re.compile(r"default_name '([^']*)'")
+total = 0
+for dirpath, _, files in os.walk(root):
+    for fn in files:
+        p = os.path.join(dirpath, fn)
+        try:
+            text = open(p, encoding="utf-8").read()
+        except (UnicodeDecodeError, IsADirectoryError):
+            continue
+        def repl(m):
+            global total
+            ru = RU.get(m.group(1))
+            if ru:
+                total += 1
+                return f"default_name '{ru}'"
+            return m.group(0)
+        new = rx.sub(repl, text)
+        if new != text:
+            open(p, "w", encoding="utf-8").write(new)
+# предупредим о любых оставшихся латинских default_name
+leftover = set()
+for dirpath, _, files in os.walk(root):
+    for fn in files:
+        p = os.path.join(dirpath, fn)
+        try:
+            for m in rx.finditer(open(p, encoding="utf-8").read()):
+                if re.search(r"[A-Za-z]", m.group(1)):
+                    leftover.add(m.group(1))
+        except (UnicodeDecodeError, IsADirectoryError):
+            continue
+print(f"[fetch_style] default_name translated: {total}")
+if leftover:
+    print(f"[fetch_style] WARNING untranslated default_name: {sorted(leftover)}",
+          file=sys.stderr)
+EOF
+
 log "OpenTopoMap style fetched into $DEST"
