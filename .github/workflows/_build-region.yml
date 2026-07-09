@@ -102,6 +102,9 @@ jobs:
           CADASTRE_GEOJSON: ${{ inputs.cadastre_geojson }}
           CADASTRE_PROXY: ${{ secrets.CADASTRE_PROXY }}
           JAVA_XMX: ${{ inputs.java_xmx }}
+          # предвычисленные границы НП (~400 МБ, кешируются) — нужны для
+          # корректного адресного поиска на приборе
+          WITH_BOUNDS: "1"
         # size-guard: если img превышает лимит GitHub Releases (2 GiB на файл),
         # шаг горизонталей автоматически увеличивается на 5 м и слой
         # пересобирается (до 3 попыток)

@@ -11,6 +11,7 @@ CodePage=1252
 ; minor contour: thin brown line
 [_line]
 Type=0x20
+String=0x04,горизонталь
 FontStyle=SmallFont
 Xpm="0 0 1 0"
 "0 c #C08040"
@@ -19,6 +20,7 @@ Xpm="0 0 1 0"
 ; medium contour
 [_line]
 Type=0x21
+String=0x04,горизонталь
 LineWidth=1
 FontStyle=SmallFont
 Xpm="0 0 1 0"
@@ -28,6 +30,7 @@ Xpm="0 0 1 0"
 ; major contour: wider, labelled
 [_line]
 Type=0x22
+String=0x04,горизонталь
 LineWidth=2
 FontStyle=SmallFont
 Xpm="0 0 1 0"

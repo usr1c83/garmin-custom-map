@@ -9,6 +9,7 @@ CodePage=1252
 ; parcel boundary: magenta dashed line
 [_line]
 Type=0x10800
+String=0x04,кадастровый участок
 UseOrientation=N
 FontStyle=SmallFont
 Xpm="32 2 2 1"

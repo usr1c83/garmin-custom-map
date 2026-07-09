@@ -25,4 +25,7 @@ cp -r "$TMP/otm/garmin/style" "$DEST/style"
 cp "$TMP/otm/garmin/opentopomap_options" "$DEST/"
 cp "$TMP/otm/garmin/contours_options" "$DEST/"
 
+# русские подписи типов объектов (building -> здание и т.п.)
+python3 "$(dirname "${BASH_SOURCE[0]}")/russify_typ.py" "$DEST/style/typ/opentopomap.txt"
+
 log "OpenTopoMap style fetched into $DEST"

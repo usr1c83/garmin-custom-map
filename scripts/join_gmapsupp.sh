@@ -35,20 +35,28 @@ add_layer() {
     EXPECT+=("$fid")
 }
 
-add_layer base     "$BASE_FID"     "OTM $REGION_NAME"
-add_layer contours "$CONTOURS_FID" "Contours $REGION_NAME"
-add_layer cadastre "$CADASTRE_FID" "Cadastre $REGION_NAME"
+# ASCII-транслит: JVM/локаль и MPS (latin1) не пропускают кириллицу через
+# argv; после склейки fix_mps_names.py вписывает cp1251-названия той же длины
+add_layer base     "$BASE_FID"     "Topoosnova $REGION_NAME"
+add_layer contours "$CONTOURS_FID" "Gorizontali $REGION_NAME"
+add_layer cadastre "$CADASTRE_FID" "Kadastr $REGION_NAME"
 
 [ ${#INPUTS[@]} -gt 0 ] || die "no compiled layers found under $REGION_DIR/layers"
 
 log "joining ${#INPUTS[@]} files into gmapsupp.img"
-run_java -jar "$MKGMAP_JAR" --gmapsupp \
+# --index добавляет в gmapsupp поисковые индексы (MDR по каждому слою) —
+# без него на приборе не работает поиск городов/адресов
+run_java -jar "$MKGMAP_JAR" --gmapsupp --index \
+    --code-page=1251 \
     --description="garmin-custom-map $REGION_NAME" \
     --output-dir="$REGION_DIR" \
     "${INPUTS[@]}" > "$REGION_DIR/join.log" 2>&1 \
     || { tail -30 "$REGION_DIR/join.log" >&2; die "gmapsupp join failed"; }
 
 [ -s "$REGION_DIR/gmapsupp.img" ] || die "gmapsupp.img was not produced"
+
+python3 "$REPO_DIR/scripts/fix_mps_names.py" "$REGION_DIR/gmapsupp.img" \
+    "Topoosnova=Топооснова" "Gorizontali=Горизонтали" "Kadastr=Кадастр"
 
 cp "$REGION_DIR/gmapsupp.img" "$REGION_DIR/${REGION_NAME}_gmapsupp.img"
 

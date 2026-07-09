@@ -67,9 +67,17 @@ if has_stage cadastre && [ "$INCLUDE_CADASTRE" = "1" ]; then
         CADASTRE_GEOJSON="$HERE/cadastre/$REGION_NAME.geojson"
         log "using committed cadastre export $CADASTRE_GEOJSON"
     fi
+    if [ -z "$CADASTRE_GEOJSON" ] && [ -z "${CADASTRE_PROXY:-}" ] && [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+        # в CI без источника прямая попытка бессмысленна (геоблокировка НСПД)
+        # и лишь сжигает ~10 минут на таймаутах
+        log "cadastre: skipped — no export at cadastre/$REGION_NAME.geojson and no CADASTRE_PROXY secret"
+        rm -f "$WORK_DIR/cadastre.osm"
+        INCLUDE_CADASTRE=0
+    fi
+fi
+if has_stage cadastre && [ "$INCLUDE_CADASTRE" = "1" ]; then
     if [ -z "$CADASTRE_GEOJSON" ] && [ -z "${CADASTRE_PROXY:-}" ]; then
-        log "cadastre: no data source (no export in cadastre/$REGION_NAME.geojson," \
-            "no CADASTRE_PROXY); NSPD is geo-blocked outside RU — trying anyway"
+        log "cadastre: no export and no proxy; trying NSPD directly (works from RU IPs)"
     fi
     CAD_ARGS=(--boundary "$WORK_DIR/boundary.geojson" --out "$WORK_DIR/cadastre.geojson")
     [ -n "$CADASTRE_GEOJSON" ] && CAD_ARGS+=(--from-geojson "$CADASTRE_GEOJSON")

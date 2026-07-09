@@ -16,21 +16,21 @@ case "$LAYER" in
         STYLE="$STYLES_DIR/base-otm/style/opentopomap"
         OPTS="$REPO_DIR/config/mkgmap/base_options"
         TYP_SRC="$STYLES_DIR/base-otm/style/typ/opentopomap.txt"
-        DESC="OTM ${REGION_NAME}"
+        DESC="Topoosnova ${REGION_NAME}"
         ;;
     contours)
         FID="$CONTOURS_FID"; MAPID="$CONTOURS_MAPID"
         STYLE="$STYLES_DIR/contours"
         OPTS="$STYLES_DIR/contours/mkgmap-options"
         TYP_SRC="$STYLES_DIR/contours/typ.txt"
-        DESC="Contours ${REGION_NAME}"
+        DESC="Gorizontali ${REGION_NAME}"
         ;;
     cadastre)
         FID="$CADASTRE_FID"; MAPID="$CADASTRE_MAPID"
         STYLE="$STYLES_DIR/cadastre"
         OPTS="$STYLES_DIR/cadastre/mkgmap-options"
         TYP_SRC="$STYLES_DIR/cadastre/typ.txt"
-        DESC="Cadastre ${REGION_NAME}"
+        DESC="Kadastr ${REGION_NAME}"
         ;;
     *) die "unknown layer '$LAYER'" ;;
 esac
@@ -59,7 +59,9 @@ TILES=("$OUT"/split/*.osm.pbf)
 [ -s "${TILES[0]}" ] || die "splitter produced no tiles"
 
 # 2) compile TYP with this layer's family-id and the map code page
-cp "$TYP_SRC" "$OUT/$LAYER.txt"
+# нормализация: CodePage=1251 в колонке 0 + файл в cp1251, иначе mkgmap
+# теряет/ломает кириллические подписи (детектор кодировки TYP)
+python3 "$REPO_DIR/scripts/prepare_typ.py" "$TYP_SRC" "$OUT/$LAYER.txt"
 (
     cd "$OUT"
     run_java -jar "$MKGMAP_JAR" --family-id="$FID" --product-id=1 \
