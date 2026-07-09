@@ -15,3 +15,19 @@ sources:
   # Калининградская область — отдельный маленький экстракт, удобен для тестов
   kaliningrad: https://download.geofabrik.de/russia/kaliningrad-latest.osm.pbf
   russia: https://download.geofabrik.de/russia-latest.osm.pbf
+
+  # Сопредельные страны (Geofabrik классифицирует по континентам; Грузия у
+  # Geofabrik относится к europe, а не asia — проверено)
+  belarus: https://download.geofabrik.de/europe/belarus-latest.osm.pbf
+  ukraine: https://download.geofabrik.de/europe/ukraine-latest.osm.pbf
+  lithuania: https://download.geofabrik.de/europe/lithuania-latest.osm.pbf
+  latvia: https://download.geofabrik.de/europe/latvia-latest.osm.pbf
+  estonia: https://download.geofabrik.de/europe/estonia-latest.osm.pbf
+  georgia: https://download.geofabrik.de/europe/georgia-latest.osm.pbf
+  armenia: https://download.geofabrik.de/asia/armenia-latest.osm.pbf
+  azerbaijan: https://download.geofabrik.de/asia/azerbaijan-latest.osm.pbf
+  kazakhstan: https://download.geofabrik.de/asia/kazakhstan-latest.osm.pbf
+  uzbekistan: https://download.geofabrik.de/asia/uzbekistan-latest.osm.pbf
+  tajikistan: https://download.geofabrik.de/asia/tajikistan-latest.osm.pbf
+  kyrgyzstan: https://download.geofabrik.de/asia/kyrgyzstan-latest.osm.pbf
+  mongolia: https://download.geofabrik.de/asia/mongolia-latest.osm.pbf

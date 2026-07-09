@@ -67,3 +67,71 @@ regions:
     geofabrik: crimean-fd
     contour_step: 10
     cadastre: true
+
+  # --- сопредельные страны (весь экстракт целиком; кадастр не применим —
+  # это данные Росреестра, только для РФ) ---
+  - name: belarus
+    query: ""
+    geofabrik: belarus
+    contour_step: 20
+    cadastre: false
+  - name: ukraine
+    query: ""
+    geofabrik: ukraine
+    contour_step: 20
+    cadastre: false
+  - name: lithuania
+    query: ""
+    geofabrik: lithuania
+    contour_step: 10
+    cadastre: false
+  - name: latvia
+    query: ""
+    geofabrik: latvia
+    contour_step: 10
+    cadastre: false
+  - name: estonia
+    query: ""
+    geofabrik: estonia
+    contour_step: 10
+    cadastre: false
+  - name: georgia
+    query: ""
+    geofabrik: georgia
+    contour_step: 10
+    cadastre: false
+  - name: armenia
+    query: ""
+    geofabrik: armenia
+    contour_step: 10
+    cadastre: false
+  - name: azerbaijan
+    query: ""
+    geofabrik: azerbaijan
+    contour_step: 10
+    cadastre: false
+  - name: kazakhstan
+    query: ""
+    geofabrik: kazakhstan
+    contour_step: 20
+    cadastre: false
+  - name: uzbekistan
+    query: ""
+    geofabrik: uzbekistan
+    contour_step: 20
+    cadastre: false
+  - name: tajikistan
+    query: ""
+    geofabrik: tajikistan
+    contour_step: 10
+    cadastre: false
+  - name: kyrgyzstan
+    query: ""
+    geofabrik: kyrgyzstan
+    contour_step: 10
+    cadastre: false
+  - name: mongolia
+    query: ""
+    geofabrik: mongolia
+    contour_step: 20
+    cadastre: false
