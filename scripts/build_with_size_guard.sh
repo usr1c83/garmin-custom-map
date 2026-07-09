@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Build a region and keep the img under the GitHub Releases per-file limit
-# (2 GiB). If the result is bigger than MAX_IMG_MB, increase the contour
-# step by 5 m and rebuild contours+compile+join, up to MAX_TRIES times.
+# Build a region and keep every release file under the GitHub per-asset
+# limit (2 GiB). If the single gmapsupp.img is too big, the map is re-joined
+# into several standalone parts, each below the limit (see join_gmapsupp.sh).
+# Map quality (contour step, DEM) is never reduced.
 #
 # Usage: same as run_all.sh (used by CI instead of calling run_all.sh).
 set -euo pipefail
@@ -9,10 +10,8 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 MAX_IMG_MB="${MAX_IMG_MB:-1950}"   # чуть ниже лимита GitHub в 2 GiB
-MAX_TRIES="${MAX_TRIES:-3}"
 
-# absorb --config here so that rebuild iterations can override CONTOUR_STEP
-# (run_all's own --config would re-source the file and reset the step)
+# absorb --config here so that the re-join call below keeps the same env
 ARGS=()
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -23,43 +22,33 @@ while [ $# -gt 0 ]; do
 done
 
 export REGION_NAME="${REGION_NAME:-region}"
-export CONTOUR_STEP="${CONTOUR_STEP:-10}"
 
 "$HERE/run_all.sh" ${ARGS[@]+"${ARGS[@]}"}
 
-IMG="${OUT_DIR:-$HERE/out}/$REGION_NAME/${REGION_NAME}_gmapsupp.img"
+OUT_REGION="${OUT_DIR:-$HERE/out}/$REGION_NAME"
+IMG="$OUT_REGION/${REGION_NAME}_gmapsupp.img"
 [ -s "$IMG" ] || { echo "size-guard: $IMG not found" >&2; exit 1; }
-
-for try in $(seq 1 "$MAX_TRIES"); do
-    SIZE_MB=$(( $(stat -c%s "$IMG") / 1024 / 1024 ))
-    if [ "$SIZE_MB" -le "$MAX_IMG_MB" ]; then
-        echo "size-guard: ${SIZE_MB} MiB <= ${MAX_IMG_MB} MiB — OK"
-        exit 0
-    fi
-    export CONTOUR_STEP=$((CONTOUR_STEP + 5))
-    echo "size-guard: ${SIZE_MB} MiB > ${MAX_IMG_MB} MiB — rebuild ${try}/${MAX_TRIES} with contour step ${CONTOUR_STEP} m"
-    "$HERE/run_all.sh" --stages contours,compile,join
-done
 
 SIZE_MB=$(( $(stat -c%s "$IMG") / 1024 / 1024 ))
 if [ "$SIZE_MB" -le "$MAX_IMG_MB" ]; then
-    echo "size-guard: ${SIZE_MB} MiB <= ${MAX_IMG_MB} MiB — OK"
+    echo "size-guard: ${SIZE_MB} MiB <= ${MAX_IMG_MB} MiB — OK (single file)"
     exit 0
 fi
 
-# последний рубеж: пересборка без встроенной карты высот (DEM — самая
-# тяжёлая часть base-слоя; горизонтали при этом остаются)
-if [ "${WITH_DEM:-1}" = "1" ]; then
-    echo "size-guard: ${SIZE_MB} MiB still over — final attempt WITHOUT embedded DEM"
-    export WITH_DEM=0
-    "$HERE/run_all.sh" --stages compile,join
-    SIZE_MB=$(( $(stat -c%s "$IMG") / 1024 / 1024 ))
-    if [ "$SIZE_MB" -le "$MAX_IMG_MB" ]; then
-        echo "size-guard: ${SIZE_MB} MiB <= ${MAX_IMG_MB} MiB — OK (DEM dropped)"
-        exit 0
-    fi
-fi
+# Слишком большой файл: НЕ упрощаем карту, а режем на части — каждая
+# часть остаётся полноценным gmapsupp и вместе они дают полную карту.
+echo "size-guard: ${SIZE_MB} MiB > ${MAX_IMG_MB} MiB — re-joining into parts"
+export MAX_PART_MB="$MAX_IMG_MB"
+"$HERE/run_all.sh" --stages join
 
-echo "size-guard: still ${SIZE_MB} MiB after ${MAX_TRIES} rebuilds (step ${CONTOUR_STEP} m)." >&2
-echo "size-guard: split the region in config/release_regions.yaml or raise contour_step." >&2
-exit 2
+PARTS=("$OUT_REGION/${REGION_NAME}_gmapsupp".part*.img)
+[ -s "${PARTS[0]}" ] || { echo "size-guard: splitting produced no parts" >&2; exit 2; }
+
+FAIL=0
+for p in "${PARTS[@]}"; do
+    MB=$(( $(stat -c%s "$p") / 1024 / 1024 ))
+    echo "size-guard: $(basename "$p") = ${MB} MiB"
+    [ "$MB" -le "$MAX_IMG_MB" ] || { echo "size-guard: $(basename "$p") is over the limit!" >&2; FAIL=1; }
+done
+[ "$FAIL" = "0" ] || exit 2
+echo "size-guard: ${#PARTS[@]} part(s), all within ${MAX_IMG_MB} MiB — OK"

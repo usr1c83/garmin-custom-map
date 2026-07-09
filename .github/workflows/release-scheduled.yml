@@ -88,8 +88,10 @@ jobs:
   # --- 3. публикация: все собранные .img одним релизом ---
   release:
     needs: build
-    # публикуем даже при частичных сбоях — в релиз попадут успешные регионы
-    if: ${{ always() && contains(needs.build.result, 'success') }}
+    # публикуем даже при частичных сбоях: needs.build.result будет 'failure',
+    # если упал хоть один регион из матрицы, поэтому проверяем не его, а
+    # фактическое наличие артефактов (шаг Create release)
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write           # право создавать релизы (токен по умолчанию)
@@ -106,7 +108,8 @@ jobs:
           TAG_INPUT: ${{ inputs.tag }}
         run: |
           TAG="${TAG_INPUT:-maps-$(date -u +%F)}"
-          ls -lh dist/
+          ls -lh dist/ || true
+          test -n "$(ls dist/*.img 2>/dev/null)" || { echo "::error::ни один регион не собрался — публиковать нечего"; exit 1; }
           NOTES="Автосборка карт Garmin (топооснова OpenTopoMap + горизонтали + кадастр).
           Слои включаются на устройстве независимо: Setup → Map → Map Information.
           Установка: скопировать <регион>_gmapsupp.img в папку Garmin/ на карте памяти.
