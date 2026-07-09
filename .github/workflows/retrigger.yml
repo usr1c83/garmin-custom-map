@@ -1,0 +1,27 @@
+# ============================================================================
+# СЛУЖЕБНЫЙ: перезапуск упавших джобов прогона без доступа к API.
+# Запишите run_id в файл .retrigger и запушьте — этот workflow перезапустит
+# его упавшие джобы (например, release-джоб, отменённый сбоем раннеров).
+# ============================================================================
+name: retrigger
+
+on:
+  push:
+    paths: [".retrigger"]
+
+jobs:
+  rerun:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Re-run failed jobs of the requested run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID="$(tr -dc '0-9' < .retrigger)"
+          test -n "$RUN_ID" || { echo "::error::.retrigger пуст"; exit 1; }
+          echo "re-running failed jobs of run $RUN_ID"
+          gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/rerun-failed-jobs" \
+            || gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/rerun"
