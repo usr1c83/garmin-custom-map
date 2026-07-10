@@ -24,6 +24,7 @@ sources:
   latvia: https://download.geofabrik.de/europe/latvia-latest.osm.pbf
   estonia: https://download.geofabrik.de/europe/estonia-latest.osm.pbf
   georgia: https://download.geofabrik.de/europe/georgia-latest.osm.pbf
+  moldova: https://download.geofabrik.de/europe/moldova-latest.osm.pbf
   armenia: https://download.geofabrik.de/asia/armenia-latest.osm.pbf
   azerbaijan: https://download.geofabrik.de/asia/azerbaijan-latest.osm.pbf
   kazakhstan: https://download.geofabrik.de/asia/kazakhstan-latest.osm.pbf

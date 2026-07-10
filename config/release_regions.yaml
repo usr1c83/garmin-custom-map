@@ -135,3 +135,8 @@ regions:
     geofabrik: mongolia
     contour_step: 10
     cadastre: false
+  - name: moldova
+    query: ""
+    geofabrik: moldova
+    contour_step: 10
+    cadastre: false

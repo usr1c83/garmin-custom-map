@@ -120,11 +120,15 @@ jobs:
             --notes "$NOTES" || \
           gh release upload "$TAG" dist/*.img --clobber
 
-      # После успешной публикации удаляем устаревшие релизы карт, чтобы не
-      # копить гигабайты. Трогаются только теги maps-* (cadastre-data и
-      # прочие служебные не затрагиваются). Сколько последних хранить —
-      # переменная KEEP ниже.
+      # Чистка старых релизов — ТОЛЬКО если собрались ВСЕ регионы.
+      # needs.build.result == 'success' (при fail-fast:false) означает, что
+      # ни один job матрицы не упал. Если хоть один регион не собрался,
+      # релиз всё равно публикуется из того, что вышло, но старые релизы
+      # НЕ удаляем — чтобы не потерять полную карту прошлого раза из-за
+      # неполной новой. Трогаются только теги maps-* (cadastre-data и прочие
+      # служебные не затрагиваются). Сколько последних хранить — KEEP.
       - name: Prune old map releases
+        if: ${{ needs.build.result == 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -138,3 +142,9 @@ jobs:
             gh release delete "$tag" --yes --cleanup-tag || echo "::warning::failed to delete $tag"
           done
           gh release list
+
+      # Сборка была неполной — сообщаем в лог, что старые релизы сохранены.
+      - name: Skip prune (partial build)
+        if: ${{ needs.build.result != 'success' }}
+        run: |
+          echo "::warning::собрались не все регионы (build result=${{ needs.build.result }}) — старые релизы НЕ удаляются, чтобы не потерять полную карту прошлого раза"
