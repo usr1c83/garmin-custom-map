@@ -55,7 +55,7 @@ regions:
   - name: siberian-fd
     query: ""
     geofabrik: siberian-fd
-    contour_step: 20
+    contour_step: 10   # проверено тест-сборкой: 2 части (1663+1120 MiB) — в лимит
     cadastre: true
   - name: far-eastern-fd
     query: ""
