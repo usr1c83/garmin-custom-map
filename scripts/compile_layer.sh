@@ -81,6 +81,13 @@ if [ "$LAYER" = "base" ]; then
         DEM_DIR="$HGT_DIR/$(echo "${HGT_SOURCE:-view3}" | tr '[:lower:]' '[:upper:]')"
         if [ -d "$DEM_DIR" ] && ls "$DEM_DIR"/*.hgt >/dev/null 2>&1; then
             EXTRA+=("--dem=$DEM_DIR")
+            # обрезаем DEM границей региона. Критично для Дальневосточного
+            # ФО: тайл сплиттера с данными по обе стороны 180-го меридиана
+            # получает bbox почти на весь мир, и без обрезки его DEM-секция
+            # превышает форматный лимит Garmin 256 МиБ («The DEM section of
+            # the map or tile is too big»). Пустота вне полигона кодируется
+            # почти бесплатно, DEM внутри региона не страдает.
+            [ -s "$WORK_DIR/region.poly" ] && EXTRA+=("--dem-poly=$WORK_DIR/region.poly")
         else
             log "[$LAYER] WITH_DEM=1, but no hgt tiles in $DEM_DIR (run the contours stage first) — DEM skipped"
         fi
