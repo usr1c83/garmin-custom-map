@@ -8,6 +8,11 @@
 #     only = все регионы (как по cron); для теста можно ограничить:
 #     only = kaliningrad,crimean-fd.
 #
+# ЕСЛИ КАКОЙ-ТО РЕГИОН УПАЛ: релиз всё равно публикуется из собранного, а
+# недостающие регионы АВТОМАТИЧЕСКИ пересобираются и дозаливаются в тот же
+# релиз (job autocomplete, до MAX попыток). Доделать вручную можно тем же
+# workflow: only=<упавшие регионы через запятую>, tag=<тег того релиза>.
+#
 # Что здесь можно менять:
 #   * расписание — строка cron (сейчас 1-е число каждого второго месяца,
 #     03:00 UTC: январь, март, май, июль, сентябрь, ноябрь — интервал
@@ -38,8 +43,13 @@ on:
         description: "тег релиза (пусто = maps-ГГГГ-ММ-ДД)"
         required: false
         default: ""
+      retry_round:
+        description: "СЛУЖЕБНОЕ: счётчик авто-доделок упавших регионов (не трогать — ставится автоматически)"
+        required: false
+        default: "0"
 
 # один релизный прогон за раз; новый не отменяет идущий
+# (авто-доделка ждёт завершения текущего прогона, а не отменяет его)
 concurrency:
   group: release-scheduled
   cancel-in-progress: false
@@ -95,6 +105,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write           # право создавать релизы (токен по умолчанию)
+    outputs:
+      tag: ${{ steps.rel.outputs.tag }}   # фактический тег → для авто-доделки
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
@@ -103,11 +115,13 @@ jobs:
           path: dist
           merge-multiple: true
       - name: Create release
+        id: rel
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_INPUT: ${{ inputs.tag }}
         run: |
           TAG="${TAG_INPUT:-maps-$(date -u +%F)}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"   # запоминаем тег для доделки
           ls -lh dist/ || true
           test -n "$(ls dist/*.img 2>/dev/null)" || { echo "::error::ни один регион не собрался — публиковать нечего"; exit 1; }
           NOTES="Автосборка карт Garmin (топооснова OpenTopoMap + горизонтали + кадастр).
@@ -148,3 +162,49 @@ jobs:
         if: ${{ needs.build.result != 'success' }}
         run: |
           echo "::warning::собрались не все регионы (build result=${{ needs.build.result }}) — старые релизы НЕ удаляются, чтобы не потерять полную карту прошлого раза"
+
+  # --- 4. авто-ДОДЕЛКА: если релиз вышел неполным (какой-то регион упал),
+  # автоматически пересобираем ТОЛЬКО недостающие регионы и до-заливаем их в
+  # ТОТ ЖЕ релиз (gh release upload --clobber). Реализовано пере-запуском
+  # этого же workflow с only=<недостающие> tag=<тот же>; счётчик retry_round
+  # ограничивает число авто-попыток (MAX ниже), чтобы не зациклиться.
+  # Вручную доделать можно так же: Actions → release-scheduled → Run workflow,
+  # only=<регионы через запятую>, tag=<тег неполного релиза>.
+  autocomplete:
+    needs: [build, release]
+    # запускаемся, только если релиз опубликован (есть что дозаливать), но
+    # собрались не все регионы; при полном успехе — ничего не делаем
+    if: ${{ !cancelled() && needs.release.result == 'success' && needs.build.result != 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write            # право перезапустить workflow (workflow_dispatch)
+    steps:
+      - uses: actions/checkout@v6
+      - name: Re-dispatch missing regions into the same release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release.outputs.tag }}
+          ROUND: ${{ inputs.retry_round }}
+          REF: ${{ github.ref_name }}
+        run: |
+          MAX=2                       # не больше 2 авто-доделок подряд
+          ROUND="${ROUND:-0}"
+          # какие регионы ждём и какие уже лежат в релизе (по префиксу имени файла)
+          python3 scripts/yaml_get.py json config/release_regions.yaml regions > all.json
+          gh release view "$TAG" --json assets --jq '.assets[].name' > assets.txt || true
+          missing=$(jq -r '.[].name' all.json | while read -r n; do
+            grep -q "^${n}_gmapsupp" assets.txt || echo "$n"
+          done | paste -sd, -)
+          if [ -z "$missing" ]; then
+            echo "релиз $TAG уже полный — доделывать нечего"; exit 0
+          fi
+          echo "в релизе $TAG не хватает регионов: $missing"
+          if [ "$ROUND" -ge "$MAX" ]; then
+            echo "::warning::достигнут предел авто-доделок ($MAX). Доделайте вручную: release-scheduled → only=$missing, tag=$TAG"
+            exit 0
+          fi
+          NEXT=$((ROUND + 1))
+          echo "::notice::авто-доделка раунд $NEXT: пересобираю $missing → релиз $TAG"
+          gh workflow run release-scheduled.yml --ref "$REF" \
+            -f only="$missing" -f tag="$TAG" -f retry_round="$NEXT"
