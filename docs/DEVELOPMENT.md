@@ -166,6 +166,90 @@ DEM не снижается.
 Требование GitHub: расписание работает только для workflow в **дефолтной
 ветке** репозитория.
 
+### Ручной запуск воркфлоу (примеры)
+
+Любой workflow запускается двумя способами: через веб-интерфейс
+(**Actions → выбрать workflow → Run workflow**, заполнить поля формы) или
+из терминала через `gh`. Примеры ниже — для `gh`; поля в форме те же.
+`gh workflow run` берёт файл workflow из **дефолтной ветки**; для другой
+ветки добавьте `--ref <ветка>`.
+
+**Одиночная сборка региона** (`build-map`, результат — в Artifacts запуска,
+релиз не трогается):
+
+```bash
+# по названию — берётся реальная админ-граница (Nominatim)
+gh workflow run build-map.yml \
+  -f region_name=suzdal \
+  -f region_query="Суздальский район" \
+  -f geofabrik=central-fd \
+  -f contour_step=10 \
+  -f include_cadastre=0
+
+# по прямоугольнику запад,юг,восток,север
+gh workflow run build-map.yml \
+  -f region_name=myarea -f bbox="20.8,54.3,22.9,55.3" -f geofabrik=kaliningrad
+
+# целый экстракт целиком (страна/округ): оставить region_query/bbox пустыми
+gh workflow run build-map.yml -f region_name=moldova -f geofabrik=moldova
+
+# большой округ — добавить памяти JVM
+gh workflow run build-map.yml -f region_name=siberia -f geofabrik=siberian-fd -f java_xmx=10g
+```
+
+Забрать готовый файл: `gh run download <run-id>` (или ссылка Artifacts на
+странице запуска). ВАЖНО: непустое `region_query`/`bbox`/`boundary_geojson`
+перекрывает «целый экстракт» — для сборки округа целиком оставьте их пустыми.
+
+**Релиз** (`release-scheduled`, публикует `.img` в GitHub Release):
+
+```bash
+# полный релиз всех регионов (то же, что по cron) — пустые only/tag
+gh workflow run release-scheduled.yml
+
+# только пара регионов под своим тегом — удобно для теста, живой релиз не тронет
+gh workflow run release-scheduled.yml -f only="kaliningrad,crimean-fd" -f tag=test-xyz
+```
+
+**Ручная доделка упавших регионов** в уже опубликованный неполный релиз —
+тот же workflow с `only=<упавшие>` и `tag=<тег того релиза>`; карты
+дозаливаются в существующий релиз (`--clobber`), новый релиз не создаётся:
+
+```bash
+# в релиз maps-2026-07-10 не попал far-eastern-fd — досбираем только его
+gh workflow run release-scheduled.yml -f only="far-eastern-fd" -f tag=maps-2026-07-10
+```
+
+`retry_round` руками не трогают — он служебный, для авто-доделки (job
+`autocomplete` сам подставляет его при перезапуске).
+
+**Пере-запуск только упавших job'ов** запуска (быстрее нового прогона —
+переиспользует кеши тулчейна и SRTM):
+
+```bash
+gh run rerun <run-id> --failed        # или на странице запуска: «Re-run failed jobs»
+```
+
+ВАЖНО: `--failed` НЕ дозаливает результат в релиз (job `release` при этом не
+перезапускается, т.к. он был «успешным»). Чтобы недостающие регионы попали в
+релиз — пользуйтесь ручной доделкой выше или дождитесь авто-доделки.
+
+**Удаление тестовых/старых релизов** (`cleanup-releases`, вместе с тегами):
+
+```bash
+gh workflow run cleanup-releases.yml -f tags="test-xyz,test-moldova"
+# то же напрямую, если под рукой права:
+gh release delete test-xyz --yes --cleanup-tag
+```
+
+**Наблюдение за запуском:**
+
+```bash
+gh run list --workflow=release-scheduled.yml   # id последних прогонов
+gh run watch <run-id>                          # live-статус
+gh run view <run-id> --log-failed              # логи только упавших шагов
+```
+
 ### Секреты
 
 * `CADASTRE_PROXY` *(опционально)* — `http://user:pass@host:port` прокси с
