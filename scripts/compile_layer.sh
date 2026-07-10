@@ -43,10 +43,30 @@ rm -rf "$OUT"
 mkdir -p "$OUT/split"
 
 # 1) merge inputs if several (contour tiles), then split into mkgmap tiles
+# ВАЖНО: osmium merge держит буферы ВСЕХ входов одновременно — на тысячах
+# файлов (ДВ ФО: 2840 тайлов горизонталей) память 16-ГБ раннера кончается
+# и VM убивает агент («The runner has received a shutdown signal», три
+# воспроизведения подряд ровно на этой стадии). Поэтому сливаем партиями
+# по MERGE_BATCH файлов, затем один финальный merge частей.
+MERGE_BATCH="${MERGE_BATCH:-300}"
 INPUT="$1"
 if [ $# -gt 1 ]; then
-    log "[$LAYER] merging $# input files"
-    osmium merge "$@" -o "$OUT/merged.osm.pbf" --overwrite
+    log "[$LAYER] merging $# input files (batch=$MERGE_BATCH)"
+    if [ $# -gt "$MERGE_BATCH" ]; then
+        rm -rf "$OUT/merge"; mkdir -p "$OUT/merge"
+        part=0
+        while [ $# -gt 0 ]; do
+            batch=("${@:1:$MERGE_BATCH}")
+            shift "${#batch[@]}"
+            osmium merge "${batch[@]}" -o "$OUT/merge/part$part.osm.pbf" --overwrite
+            part=$((part+1))
+        done
+        log "[$LAYER] merging $part intermediate part(s)"
+        osmium merge "$OUT"/merge/part*.osm.pbf -o "$OUT/merged.osm.pbf" --overwrite
+        rm -rf "$OUT/merge"
+    else
+        osmium merge "$@" -o "$OUT/merged.osm.pbf" --overwrite
+    fi
     INPUT="$OUT/merged.osm.pbf"
 fi
 
