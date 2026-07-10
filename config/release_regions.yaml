@@ -60,7 +60,7 @@ regions:
   - name: far-eastern-fd
     query: ""
     geofabrik: far-eastern-fd
-    contour_step: 20
+    contour_step: 10   # оценка: 20м=2 части (2590 MiB), ×1.24 (как Сибирь) ≈ 3.2 ГиБ = 2 части
     cadastre: true
   - name: crimean-fd
     query: ""
