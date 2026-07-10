@@ -32,17 +32,22 @@ if [ -s "$PBF" ] && [ "${REFRESH_OSM:-0}" != "1" ] && pbf_valid "$PBF"; then
     log "using cached $PBF (set REFRESH_OSM=1 to re-download)"
 else
     rm -f "$PBF"
-    for attempt in 1 2 3 4; do
-        log "downloading $URL (attempt $attempt/4)"
+    # число внешних попыток (каждая полностью перезапускает download.sh,
+    # который сам делает $DOWNLOAD_TRIES докачек aria2). Переопределяется
+    # переменной OSM_DOWNLOAD_ATTEMPTS.
+    ATTEMPTS="${OSM_DOWNLOAD_ATTEMPTS:-10}"
+    for attempt in $(seq 1 "$ATTEMPTS"); do
+        log "downloading $URL (attempt $attempt/$ATTEMPTS)"
         if "$REPO_DIR/scripts/download.sh" "$URL" "$PBF.tmp" && pbf_valid "$PBF.tmp"; then
             mv "$PBF.tmp" "$PBF"
             break
         fi
         # битый файл выбрасываем вместе с control-файлом докачки aria2
         rm -f "$PBF.tmp" "$PBF.tmp.aria2"
-        [ "$attempt" -lt 4 ] || die "Geofabrik download failed or corrupt after 4 attempts: $URL"
-        log "downloaded file is invalid; retrying in $((attempt * 60))s"
-        sleep $((attempt * 60))
+        [ "$attempt" -lt "$ATTEMPTS" ] || die "Geofabrik download failed or corrupt after $ATTEMPTS attempts: $URL"
+        delay=$((attempt * 30)); [ "$delay" -gt 180 ] && delay=180
+        log "downloaded file is invalid; retrying in ${delay}s"
+        sleep "$delay"
     done
 fi
 

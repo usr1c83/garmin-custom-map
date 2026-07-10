@@ -39,15 +39,19 @@ COMMON_ARGS=(
 
 log "downloading elevation tiles (source=${HGT_SOURCE:-view3}, retries with timeout)"
 DL_OK=0
-for attempt in 1 2 3 4 5; do
+# число попыток фазы --download-only (кеш hgt/ копит прогресс между ними).
+# Переопределяется переменной HGT_DOWNLOAD_ATTEMPTS.
+ATTEMPTS="${HGT_DOWNLOAD_ATTEMPTS:-10}"
+for attempt in $(seq 1 "$ATTEMPTS"); do
     if "${PYHGT[@]}" "${COMMON_ARGS[@]}" --download-only; then
         DL_OK=1
         break
     fi
-    log "download attempt $attempt failed; retrying in $((attempt * 30))s"
-    sleep $((attempt * 30))
+    delay=$((attempt * 30)); [ "$delay" -gt 180 ] && delay=180
+    log "download attempt $attempt/$ATTEMPTS failed; retrying in ${delay}s"
+    sleep "$delay"
 done
-[ "$DL_OK" = "1" ] || die "elevation download failed after 5 attempts (viewfinderpanoramas.org down?)"
+[ "$DL_OK" = "1" ] || die "elevation download failed after $ATTEMPTS attempts (viewfinderpanoramas.org down?)"
 
 # NOTE: --jobs > 1 deadlocks in pyhgtmap 4.1 (children fork with npyosmium
 # writer threads and hang in add_way). Single process is reliable; override

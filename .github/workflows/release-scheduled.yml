@@ -83,6 +83,11 @@ jobs:
     needs: plan
     strategy:
       fail-fast: false          # упавший регион не отменяет остальные
+      max-parallel: 1           # регионы собираются ПО ОЧЕРЕДИ, а не все сразу —
+                                # чтобы не долбить Geofabrik параллельными
+                                # скачиваниями (риск бана/троттлинга по IP).
+                                # Ускорить = поднять число (напр. 3); упавший
+                                # регион всё равно не блокирует следующие.
       matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
     uses: ./.github/workflows/_build-region.yml
     secrets: inherit            # CADASTRE_PROXY, если секрет создан
