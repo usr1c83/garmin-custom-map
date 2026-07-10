@@ -49,6 +49,10 @@ on:
         description: "Память JVM (для целых фед. округов ставьте 10g)"
         required: false
         default: "6g"
+      with_dem:
+        description: "Карта высот (DEM): 1 = да, 0 = нет"
+        required: false
+        default: "1"
 
 jobs:
   build:
@@ -64,3 +68,4 @@ jobs:
       include_cadastre: ${{ inputs.include_cadastre }}
       cadastre_geojson: ${{ inputs.cadastre_geojson }}
       java_xmx: ${{ inputs.java_xmx }}
+      with_dem: ${{ inputs.with_dem }}

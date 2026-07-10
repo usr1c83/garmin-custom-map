@@ -75,19 +75,22 @@ jobs:
             cp all.json sel.json
           fi
           test "$(jq length sel.json)" -gt 0 || { echo "::error::no regions matched '$ONLY'"; exit 1; }
-          jq . sel.json
-          echo "matrix={\"region\":$(jq -c . sel.json)}" >> "$GITHUB_OUTPUT"
+          # умолчание with_dem=true, если поле не задано в yaml (нельзя
+          # сравнивать с false в выражениях workflow — там null == false)
+          jq -c 'map(if has("with_dem") then . else . + {with_dem: true} end)' sel.json > norm.json
+          jq . norm.json
+          echo "matrix={\"region\":$(cat norm.json)}" >> "$GITHUB_OUTPUT"
 
   # --- 2. параллельная сборка каждого региона (общая логика в _build-region) ---
   build:
     needs: plan
     strategy:
       fail-fast: false          # упавший регион не отменяет остальные
-      max-parallel: 1           # регионы собираются ПО ОЧЕРЕДИ, а не все сразу —
-                                # чтобы не долбить Geofabrik параллельными
-                                # скачиваниями (риск бана/троттлинга по IP).
-                                # Ускорить = поднять число (напр. 3); упавший
-                                # регион всё равно не блокирует следующие.
+      max-parallel: 3           # собираем по 3 региона за раз (не все 24 сразу) —
+                                # компромисс скорость/нагрузка на Geofabrik,
+                                # чтобы не словить бан/троттлинг по IP.
+                                # 1 = строго по очереди; упавший регион при
+                                # fail-fast:false не блокирует остальные.
       matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
     uses: ./.github/workflows/_build-region.yml
     secrets: inherit            # CADASTRE_PROXY, если секрет создан
@@ -98,6 +101,7 @@ jobs:
       contour_step: ${{ format('{0}', matrix.region.contour_step) }}
       include_cadastre: ${{ matrix.region.cadastre && '1' || '0' }}
       cadastre_geojson: ${{ matrix.region.cadastre_geojson || '' }}
+      with_dem: ${{ matrix.region.with_dem && '1' || '0' }}
       java_xmx: "10g"
 
   # --- 3. публикация: все собранные .img одним релизом ---
@@ -177,9 +181,13 @@ jobs:
   # only=<регионы через запятую>, tag=<тег неполного релиза>.
   autocomplete:
     needs: [build, release]
-    # запускаемся, только если релиз опубликован (есть что дозаливать), но
-    # собрались не все регионы; при полном успехе — ничего не делаем
-    if: ${{ !cancelled() && needs.release.result == 'success' && needs.build.result != 'success' }}
+    # запускаемся при любом неполном билде. ВАЖНО: НЕ требуем успеха job
+    # release — в раунде доделки, где единственный регион снова упал,
+    # артефактов ноль и release падает («публиковать нечего»); цепочка
+    # доделок при этом должна продолжаться до MAX раундов, а не обрываться.
+    # Тег релиза известен даже при упавшем release (output пишется до
+    # проверки наличия артефактов).
+    if: ${{ !cancelled() && needs.build.result != 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -195,6 +203,7 @@ jobs:
         run: |
           MAX=2                       # не больше 2 авто-доделок подряд
           ROUND="${ROUND:-0}"
+          [ -n "$TAG" ] || { echo "::warning::тег релиза неизвестен — доделка невозможна"; exit 0; }
           # какие регионы ждём и какие уже лежат в релизе (по префиксу имени файла)
           python3 scripts/yaml_get.py json config/release_regions.yaml regions > all.json
           gh release view "$TAG" --json assets --jq '.assets[].name' > assets.txt || true

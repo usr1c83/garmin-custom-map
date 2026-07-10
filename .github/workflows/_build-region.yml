@@ -57,6 +57,11 @@ on:
         required: false
         type: string
         default: "6g"
+      with_dem:
+        description: "1 = встроить карту высот (DEM); 0 = без DEM (для регионов через 180° меридиан — см. far-eastern-fd)"
+        required: false
+        type: string
+        default: "1"
     secrets:
       CADASTRE_PROXY:
         description: "HTTP(S)-прокси с российским IP для прямой выгрузки с НСПД"
@@ -124,10 +129,24 @@ jobs:
           CADASTRE_GEOJSON: ${{ inputs.cadastre_geojson }}
           CADASTRE_PROXY: ${{ secrets.CADASTRE_PROXY }}
           JAVA_XMX: ${{ inputs.java_xmx }}
+          WITH_DEM: ${{ inputs.with_dem }}
           # предвычисленные границы НП (~400 МБ, кешируются) — без них
           # адресный поиск на приборе хуже привязывает улицы к городам
           WITH_BOUNDS: "1"
         run: ./scripts/build_with_size_guard.sh
+
+      # При падении выгружаем логи всех стадий (splitter/mkgmap/join) —
+      # консоль показывает только хвост, а причина (стектрейс mkgmap)
+      # обычно раньше в out/<регион>/layers/<слой>/mkgmap.log
+      - name: Upload build logs (failure only)
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ inputs.region_name }}-logs
+          path: |
+            out/${{ inputs.region_name }}/**/*.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       # Один файл либо несколько частей .partN.img, если регион не влез в
       # лимит релиза 2 GiB (см. size-guard) — копируются все

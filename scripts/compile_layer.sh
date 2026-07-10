@@ -87,6 +87,18 @@ if [ "$LAYER" = "base" ]; then
     fi
 fi
 
+# при падении показываем ПРИЧИНУ, а не только хвост: хвост mkgmap.log
+# забивают безобидные HGTReader-предупреждения, а стектрейс
+# (MapFailedException и т.п.) остаётся выше по логу
+mkgmap_fail_dump() {
+    {
+        echo "--- exception context from mkgmap.log ---"
+        grep -aB 3 -A 30 -E "Exception|SEVERE|Error executing" "$OUT/mkgmap.log" | tail -120
+        echo "--- last lines of mkgmap.log ---"
+        tail -10 "$OUT/mkgmap.log"
+    } >&2
+}
+
 log "[$LAYER] mkgmap: family-id=$FID ${#TILES[@]} tile(s)"
 run_java -jar "$MKGMAP_JAR" -c "$OPTS" \
     --style-file="$STYLE" \
@@ -100,8 +112,8 @@ run_java -jar "$MKGMAP_JAR" -c "$OPTS" \
     "${EXTRA[@]}" \
     "${TILES[@]}" \
     "$TYP_FILE" \
-    > "$OUT/mkgmap.log" 2>&1 || { tail -30 "$OUT/mkgmap.log" >&2; die "mkgmap failed for $LAYER"; }
+    > "$OUT/mkgmap.log" 2>&1 || { mkgmap_fail_dump; die "mkgmap failed for $LAYER"; }
 
 IMGS=("$OUT/${MAPID}"*.img)
-[ -s "${IMGS[0]}" ] || { tail -30 "$OUT/mkgmap.log" >&2; die "no .img produced for $LAYER"; }
+[ -s "${IMGS[0]}" ] || { mkgmap_fail_dump; die "no .img produced for $LAYER"; }
 log "[$LAYER] done: $(ls "$OUT/${MAPID}"*.img | wc -l) img tile(s) + $(basename "$TYP_FILE")"
