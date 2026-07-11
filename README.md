@@ -188,11 +188,8 @@ GPSMAP 6x с прошивкой, поддерживающей русский я�
 ---
 
 ## Донаты
-USDT (ETH Network) 0xb7E5A7014C75a0edCb502d216EA9944ddC27f291 
-USDT (TRX Network) TEzk4C4SNPdCihgpvBU2adcrUTHBD9Gj8S 
-USDT (BSC Network) 0xb7E5A7014C75a0edCb502d216EA9944ddC27f291
 BTC bc1qyag2vjdglf3lhjy24p7k6k77yxzjys6jw75f9c
-ETH (ETH Network) 0xb7E5A7014C75a0edCb502d216EA9944ddC27f291
+
 
 ## Лицензии
 
